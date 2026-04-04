@@ -533,11 +533,11 @@ with st.sidebar:
     st.markdown("---")
 
     # ── Commodity ──
-    st.markdown('<div class="sl-section-tag">📦 Komoditas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sl-section-tag">Komoditas</div>', unsafe_allow_html=True)
     commodity = st.radio("Jenis Komoditas", ["Minyak Bumi", "Gas Bumi"], horizontal=True)
 
     st.markdown("---")
-    st.markdown('<div class="sl-section-tag">📋 Fixed Components</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sl-section-tag">Fixed Components</div>', unsafe_allow_html=True)
 
     field_status = st.selectbox(
         "1 · Status Lapangan (Field Status)",
@@ -593,7 +593,7 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown('<div class="sl-section-tag">📈 Progressive Components</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sl-section-tag">Progressive Components</div>', unsafe_allow_html=True)
 
     if commodity == "Minyak Bumi":
         icp_price = st.number_input(
@@ -613,7 +613,7 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown('<div class="sl-section-tag">⚖️ Pasal 7 – Diskresi Menteri</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sl-section-tag">Pasal 7 – Diskresi Menteri</div>', unsafe_allow_html=True)
     ministerial_adj = st.number_input(
         "Tambahan / Pengurangan Split Kontraktor (%)",
         value=0.0, step=0.5,
@@ -621,7 +621,7 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    calc_btn = st.button("⚡  Hitung Gross Split", use_container_width=True)
+    calc_btn = st.button("Hitung Gross Split", use_container_width=True)
 
 
 # ─────────────────────────────────────────────
@@ -653,7 +653,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ─────────────────────────────────────────────
 #  TABS
 # ─────────────────────────────────────────────
-tab_calc, tab_ref, tab_about = st.tabs(["📊 Kalkulator", "📚 Tabel Referensi", "ℹ️ Tentang"])
+tab_calc, tab_ref, tab_about = st.tabs(["Kalkulator", "Tabel Referensi", "Tentang"])
 
 # ══════════════════════════════════════════════
 #  TAB 1 – KALKULATOR
@@ -662,14 +662,13 @@ with tab_calc:
     if not calc_btn:
         st.markdown("""
         <div class="sl-card" style="text-align:center;padding:48px 24px;">
-          <div style="font-size:3rem;margin-bottom:16px;">🛢️</div>
           <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;
                       color:#E8EEF4;margin-bottom:8px;">
             SplitLogic
           </div>
           <div style="color:#8BA3BC;font-size:0.9rem;max-width:480px;margin:0 auto;">
             Isi seluruh parameter di sidebar kiri, lalu klik
-            <strong style="color:#E8963C">⚡ Hitung Gross Split</strong> untuk memulai kalkulasi.
+            <strong style="color:#E8963C">Hitung Gross Split</strong> untuk memulai kalkulasi.
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -726,7 +725,7 @@ with tab_calc:
         st.plotly_chart(waterfall_chart(res), use_container_width=True)
 
         # ── Breakdown Table ──
-        st.markdown("### 📋 Rincian Komponen")
+        st.markdown("###Rincian Komponen")
         rows = []
         for comp, val in res["fixed_comps"].items():
             rows.append({"Komponen": comp, "Tipe": "Fixed", "Koreksi Split Kontraktor (%)": f"+{val:.2f}%"})
@@ -747,7 +746,7 @@ with tab_calc:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"""
         <div class="sl-card" style="border-color:rgba(232,150,60,0.4);">
-          <div class="sl-section-tag">📊 Ringkasan Final</div>
+          <div class="sl-section-tag">Ringkasan Final</div>
           <table style="width:100%;border-collapse:collapse;margin-top:12px;">
             <thead>
               <tr style="border-bottom:1px solid rgba(232,150,60,0.2);">
@@ -796,11 +795,11 @@ with tab_calc:
 #  TAB 2 – TABEL REFERENSI
 # ══════════════════════════════════════════════
 with tab_ref:
-    st.markdown("### 📚 Tabel Komponen Gross Split")
+    st.markdown("###Tabel Komponen Gross Split")
     st.markdown("Berdasarkan **Peraturan Menteri ESDM No. 8 Tahun 2017** tentang Kontrak Bagi Hasil Gross Split.")
 
     # Base split
-    with st.expander("🏁 Base Split", expanded=True):
+    with st.expander("Base Split", expanded=True):
         st.dataframe(pd.DataFrame({
             "Komoditas":          ["Minyak Bumi", "Gas Bumi"],
             "Pemerintah (%)":     [57, 52],
@@ -808,7 +807,7 @@ with tab_ref:
         }), use_container_width=True, hide_index=True)
 
     # Fixed components tables
-    with st.expander("📌 Fixed Components (10 Komponen)", expanded=False):
+    with st.expander("Fixed Components (10 Komponen)", expanded=False):
         tables = {
             "1. Field Status": pd.DataFrame({
                 "Parameter": ["POD I", "POD II", "No POD"],
@@ -864,7 +863,7 @@ with tab_ref:
             st.dataframe(df_t, use_container_width=True, hide_index=True)
             st.markdown("")
 
-    with st.expander("📈 Progressive Components (3 Komponen)", expanded=False):
+    with st.expander("Progressive Components (3 Komponen)", expanded=False):
         st.markdown("**11a. Harga Minyak Bumi / ICP (US$/BBL)**")
         st.dataframe(pd.DataFrame({
             "Parameter":              ["ICP ≥ 85", "ICP < 85"],
@@ -884,7 +883,7 @@ with tab_ref:
             "Koreksi Kontrak. (%)": [10, 9, 8, 6, 4, 0],
         }), use_container_width=True, hide_index=True)
 
-    with st.expander("⚖️ Pasal 7 – Diskresi Menteri", expanded=False):
+    with st.expander("Pasal 7 – Diskresi Menteri", expanded=False):
         st.markdown("""
 **Ayat (1):** Jika keekonomian lapangan *tidak tercapai*, Menteri dapat menambah persentase
 bagi hasil kepada Kontraktor.
@@ -896,13 +895,13 @@ persentase bagi hasil untuk Negara.
 hasil evaluasi SKK Migas.
         """)
 
-    with st.expander("🧮 Pasal 9 – Penyesuaian Progresif Bulanan", expanded=False):
+    with st.expander("Pasal 9 – Penyesuaian Progresif Bulanan", expanded=False):
         st.markdown("""
 Penyesuaian akibat komponen progresif harga dilaksanakan **setiap bulan** berdasarkan
 evaluasi SKK Migas menggunakan rata-rata ICP seluruh lapangan dalam POD yang telah disetujui.
         """)
 
-    with st.expander("💼 Pasal 14 – Biaya Operasi sebagai Pengurang Pajak", expanded=False):
+    with st.expander("Pasal 14 – Biaya Operasi sebagai Pengurang Pajak", expanded=False):
         st.markdown("""
 Biaya operasi Kontraktor menjadi **unsur pengurang penghasilan** dalam perhitungan
 Pajak Penghasilan sesuai peraturan perpajakan hulu Migas yang berlaku.
@@ -913,13 +912,13 @@ Pajak Penghasilan sesuai peraturan perpajakan hulu Migas yang berlaku.
 #  TAB 3 – TENTANG
 # ══════════════════════════════════════════════
 with tab_about:
-    st.markdown("### ℹ️ Tentang Aplikasi")
+    st.markdown("###Tentang Aplikasi")
 
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("""
         <div class="sl-card">
-          <div class="sl-section-tag">🛢️ Aplikasi</div>
+          <div class="sl-section-tag">Aplikasi</div>
           <p style="margin-top:12px;line-height:1.8;">
             <strong>SplitLogic</strong> adalah aplikasi kalkulator interaktif untuk menghitung
             bagi hasil produksi minyak dan gas bumi menggunakan skema
@@ -937,7 +936,7 @@ with tab_about:
     with c2:
         st.markdown("""
         <div class="sl-card">
-          <div class="sl-section-tag">🎓 Informasi Akademik</div>
+          <div class="sl-section-tag">Informasi Akademik</div>
           <table style="width:100%;margin-top:12px;border-collapse:collapse;">
             <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
               <td style="padding:8px 0;color:#8BA3BC;font-size:0.85rem;">Mata Kuliah</td>
@@ -976,7 +975,7 @@ with tab_about:
 
     st.markdown("""
     <div class="sl-card" style="margin-top:8px;">
-      <div class="sl-section-tag">📜 Dasar Hukum & Metodologi</div>
+      <div class="sl-section-tag">Dasar Hukum & Metodologi</div>
       <ul style="margin-top:12px;line-height:2;color:#C8D8E8;">
         <li><strong>Peraturan Menteri ESDM No. 8 Tahun 2017</strong> – Kontrak Bagi Hasil Gross Split</li>
         <li>Komponen Fixed (10): Field Status, Lokasi, Kedalaman Reservoir, Infrastruktur,
@@ -991,7 +990,7 @@ with tab_about:
 
     st.markdown("""
     <div class="sl-card" style="margin-top:8px;">
-      <div class="sl-section-tag">⚙️ Stack Teknologi</div>
+      <div class="sl-section-tag">Stack Teknologi</div>
       <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
         <span class="badge">Python 3.13</span>
         <span class="badge">Streamlit</span>
@@ -1003,7 +1002,7 @@ with tab_about:
 
     st.markdown("""
     <div class="sl-card" style="margin-top:8px;">
-      <div class="sl-section-tag">👾 Feedback & Report</div>
+      <div class="sl-section-tag">Feedback & Report</div>
       <ul style="margin-top:12px;line-height:2;color:#C8D8E8;">
         Untuk masukan atau pelaporan bug, silakan hubungi contact person melalui email: abraham.bramanti@outlook.com atau melalui LinkedIn: linkedin.com/in/abraham-bramanti
       </ul>
