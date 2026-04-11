@@ -1,35 +1,45 @@
-# PROYEK 2: SplitLogic
+# ==========================================
+# PSCore \u2013 PSC Modelling Suite
+# Combines: PSChii (Cost Recovery) + SplitLogic (Gross Split)
+# Theme: SplitLogic dark navy/amber aesthetic
+# ==========================================
 
-# ─────────────────────────────────────────────
-#  LIBRARY
-# ─────────────────────────────────────────────
-
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# 0. LIBRARY
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
-import plotly.express as px
+from plotly.subplots import make_subplots
+import numpy_financial as npf
 import os
 from PIL import Image
 
-# ─────────────────────────────────────────────
-#  PAGE CONFIG
-# ─────────────────────────────────────────────
-logo_path = "assets/splitlogic.png"
+try:
+    import yfinance as yf
+    YFINANCE_OK = True
+except ImportError:
+    YFINANCE_OK = False
+
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# 1. PAGE CONFIG
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+logo_path = os.path.join("assets", "splitlogic.png")
 try:
     logo = Image.open(logo_path)
-    st.set_page_config(layout="wide", page_title="SplitLogic", page_icon=logo)
+    st.set_page_config(layout="wide", page_title="PSCore v1.0", page_icon=logo)
 except FileNotFoundError:
-    st.set_page_config(layout="wide", page_title="SplitLogic", page_icon="⚡")
+    st.set_page_config(layout="wide", page_title="PSCore v1.0", page_icon="\u26a1")
     logo = None
 
-# ─────────────────────────────────────────────
-#  GLOBAL CSS
-# ─────────────────────────────────────────────
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# 2. GLOBAL CSS  (SplitLogic theme)
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
 
-  /* ── Root & Background ── */
   :root {
     --amber:   #E8963C;
     --amber-d: #C47420;
@@ -50,7 +60,6 @@ st.markdown("""
     color: var(--text);
   }
 
-  /* dark background with subtle grid */
   .stApp {
     background:
       linear-gradient(rgba(232,150,60,0.03) 1px, transparent 1px),
@@ -59,7 +68,6 @@ st.markdown("""
     background-size: 48px 48px, 48px 48px, 100% 100%;
   }
 
-  /* ── Sidebar ── */
   [data-testid="stSidebar"] {
     background: var(--navy-2) !important;
     border-right: 1px solid var(--border) !important;
@@ -68,17 +76,13 @@ st.markdown("""
   [data-testid="stSidebar"] .stNumberInput label,
   [data-testid="stSidebar"] .stRadio label,
   [data-testid="stSidebar"] p,
-  [data-testid="stSidebar"] span {
-    color: var(--text) !important;
-  }
+  [data-testid="stSidebar"] span { color: var(--text) !important; }
 
-  /* ── Headers ── */
   h1, h2, h3, h4 {
     font-family: 'Syne', sans-serif !important;
     color: var(--text) !important;
   }
 
-  /* ── Metric cards ── */
   [data-testid="stMetric"] {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -100,13 +104,11 @@ st.markdown("""
   }
   [data-testid="stMetricDelta"] { color: var(--amber-l) !important; }
 
-  /* ── Dataframe ── */
   [data-testid="stDataFrame"] {
     border-radius: var(--radius);
     border: 1px solid var(--border);
   }
 
-  /* ── Selectbox / Number input ── */
   .stSelectbox > div > div,
   .stNumberInput > div > div > input {
     background: var(--navy-3) !important;
@@ -119,7 +121,6 @@ st.markdown("""
     border-color: var(--amber) !important;
   }
 
-  /* ── Buttons ── */
   .stButton > button {
     background: linear-gradient(135deg, var(--amber), var(--amber-d)) !important;
     color: #0D1B2A !important;
@@ -136,10 +137,8 @@ st.markdown("""
     box-shadow: 0 8px 24px rgba(232,150,60,0.35) !important;
   }
 
-  /* ── Divider ── */
   hr { border-color: var(--border) !important; }
 
-  /* ── Tabs ── */
   .stTabs [data-baseweb="tab-list"] {
     background: var(--navy-2);
     border-radius: var(--radius) var(--radius) 0 0;
@@ -158,7 +157,6 @@ st.markdown("""
     color: #0D1B2A !important;
   }
 
-  /* ── Expander ── */
   [data-testid="stExpander"] {
     background: var(--card-bg);
     border: 1px solid var(--border) !important;
@@ -170,18 +168,11 @@ st.markdown("""
     font-weight: 600;
   }
 
-  /* ── Info / Success box ── */
-  .stAlert {
-    border-radius: var(--radius) !important;
-  }
+  .stAlert { border-radius: var(--radius) !important; }
 
-  /* ── Radio ── */
   .stRadio label { color: var(--text) !important; }
-  .stRadio [data-baseweb="radio"] div {
-    border-color: var(--amber) !important;
-  }
+  .stRadio [data-baseweb="radio"] div { border-color: var(--amber) !important; }
 
-  /* ── Custom card helper ── */
   .sl-card {
     background: var(--card-bg);
     border: 1px solid var(--border);
@@ -203,33 +194,6 @@ st.markdown("""
     border-radius: 4px;
     margin-bottom: 10px;
   }
-  .sl-result-bar {
-    height: 10px;
-    border-radius: 5px;
-    background: linear-gradient(90deg, #1A3050, #0D1B2A);
-    margin: 8px 0;
-    overflow: hidden;
-  }
-  .sl-result-bar-fill-gov {
-    height: 100%;
-    background: linear-gradient(90deg, #2C4A6E, #3A6090);
-    border-radius: 5px 0 0 5px;
-    transition: width 1s ease;
-  }
-  .hero-title {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(2rem, 4vw, 3.2rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    color: #E8EEF4;
-  }
-  .hero-sub {
-    font-size: 0.9rem;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-top: 8px;
-  }
   .badge {
     display: inline-block;
     background: rgba(232,150,60,0.12);
@@ -243,6 +207,21 @@ st.markdown("""
     border-radius: 20px;
     margin-right: 6px;
   }
+  .mode-pill {
+    display: inline-block;
+    background: rgba(232,150,60,0.20);
+    border: 1px solid rgba(232,150,60,0.5);
+    color: var(--amber);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
   .footer-text {
     font-size: 0.75rem;
     color: var(--muted);
@@ -254,140 +233,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-# ─────────────────────────────────────────────
-#  GROSS SPLIT CALCULATION ENGINE
-# ─────────────────────────────────────────────
-
-BASE_SPLIT = {
-    "Minyak Bumi": {"gov": 57.0, "cont": 43.0},
-    "Gas Bumi":    {"gov": 52.0, "cont": 48.0},
-}
-
-def calc_field_status(status: str) -> float:
-    return {"POD I": 5.0, "POD II": 3.0, "No POD": 0.0}.get(status, 0.0)
-
-def calc_field_location(depth_m: float, is_offshore: bool) -> float:
-    if not is_offshore:
-        return 0.0
-    if depth_m <= 20:   return 8.0
-    if depth_m <= 50:   return 10.0
-    if depth_m <= 150:  return 12.0
-    if depth_m <= 1000: return 14.0
-    return 16.0
-
-def calc_reservoir_depth(depth_m: float) -> float:
-    return 1.0 if depth_m > 2500 else 0.0
-
-def calc_infrastructure(infra: str) -> float:
-    return {"Well Developed": 0.0, "New Frontier Offshore": 2.0, "New Frontier Onshore": 4.0}.get(infra, 0.0)
-
-def calc_reservoir_type(rtype: str) -> float:
-    return {"Konvensional (Sandstone / Limestone / Carbonate)": 0.0,
-            "Non-Konvensional (Shale / CBM)": 15.0}.get(rtype, 0.0)
-
-def calc_co2(pct: float) -> float:
-    if pct < 5:   return 0.0
-    if pct < 10:  return 0.5
-    if pct < 20:  return 1.0
-    if pct < 40:  return 1.5
-    if pct < 60:  return 2.0
-    return 4.0
-
-def calc_h2s(ppm: float) -> float:
-    if ppm < 100:   return 0.0
-    if ppm < 1000:  return 1.0
-    if ppm < 2000:  return 2.0
-    if ppm < 3000:  return 3.0
-    if ppm < 4000:  return 4.0
-    return 5.0
-
-def calc_sg(api: float) -> float:
-    return 1.0 if api < 25 else 0.0
-
-def calc_tkdn(pct: float) -> float:
-    if pct < 30:  return 0.0
-    if pct < 50:  return 2.0
-    if pct < 70:  return 3.0
-    return 4.0
-
-def calc_prod_stage(stage: str) -> float:
-    return {"Primary": 0.0,
-            "Sekunder (Injeksi Air / Gas)": 6.0,
-            "Tersier (EOR)": 10.0}.get(stage, 0.0)
-
-# Progressive components
-def calc_oil_price(icp: float) -> float:
-    if icp >= 85:  return 0.0
-    return (85 - icp) * 0.25
-
-def calc_gas_price(price: float) -> float:
-    if price < 7:   return (7 - price) * 2.5
-    if price < 10:  return 0.0
-    return (price - 10) * 2.5
-
-def calc_nett_prod(mmboe: float) -> float:
-    if mmboe < 30:   return 10.0
-    if mmboe < 60:   return 9.0
-    if mmboe < 90:   return 8.0
-    if mmboe < 125:  return 6.0
-    if mmboe < 175:  return 4.0
-    return 0.0
-
-def calculate_gross_split(params: dict) -> dict:
-    """Main calculation function. Returns full breakdown dict."""
-
-    commodity  = params["commodity"]
-    base       = BASE_SPLIT[commodity]
-
-    # ── Fixed components ──
-    fc = {
-        "Status Lapangan":        calc_field_status(params["field_status"]),
-        "Lokasi Lapangan":        calc_field_location(params["water_depth"], params["is_offshore"]),
-        "Kedalaman Reservoir":    calc_reservoir_depth(params["reservoir_depth"]),
-        "Infrastruktur":          calc_infrastructure(params["infrastructure"]),
-        "Jenis Reservoir":        calc_reservoir_type(params["reservoir_type"]),
-        "Kandungan CO₂":          calc_co2(params["co2_pct"]),
-        "Kandungan H₂S":          calc_h2s(params["h2s_ppm"]),
-        "SG (API)":               calc_sg(params["api"]),
-        "TKDN":                   calc_tkdn(params["tkdn_pct"]),
-        "Tahapan Produksi":       calc_prod_stage(params["prod_stage"]),
-    }
-
-    # ── Progressive components ──
-    pc = {}
-    if commodity == "Minyak Bumi":
-        pc["Harga Minyak (ICP)"] = calc_oil_price(params.get("icp_price", 85))
-    else:
-        pc["Harga Gas Bumi"]     = calc_gas_price(params.get("gas_price", 8))
-
-    pc["Kumulatif Produksi (MMBOE)"] = calc_nett_prod(params["nett_prod"])
-
-    # ── Ministerial discretion (Pasal 7) ──
-    ministerial = params.get("ministerial_adj", 0.0)
-
-    total_correction = sum(fc.values()) + sum(pc.values()) + ministerial
-
-    final_cont = base["cont"] + total_correction
-    final_gov  = 100.0 - final_cont
-
-    return {
-        "commodity":       commodity,
-        "base_gov":        base["gov"],
-        "base_cont":       base["cont"],
-        "fixed_comps":     fc,
-        "progressive_comps": pc,
-        "ministerial_adj": ministerial,
-        "total_correction": total_correction,
-        "final_cont":      final_cont,
-        "final_gov":       final_gov,
-    }
-
-
-# ─────────────────────────────────────────────
-#  PLOTLY CHARTS
-# ─────────────────────────────────────────────
-
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# 3. PLOTLY HELPERS (shared)
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 AMBER = "#E8963C"
 NAVY  = "#1A3050"
 SLATE = "#2C4A6E"
@@ -411,614 +259,407 @@ def plotly_layout(title="", height=380):
         ),
     )
 
-def donut_chart(gov_pct: float, cont_pct: float, label: str = "Final Split"):
-    fig = go.Figure(go.Pie(
-        labels=["Pemerintah", "Kontraktor"],
-        values=[round(gov_pct, 4), round(cont_pct, 4)],
-        hole=0.65,
-        marker=dict(
-            colors=[SLATE, AMBER],
-            line=dict(color="rgba(13,27,42,1)", width=3),
-        ),
-        textfont=dict(family="Syne", size=13, color="#E8EEF4"),
-        hovertemplate="<b>%{label}</b><br>%{value:.2f}%<extra></extra>",
-    ))
-    fig.add_annotation(
-        text=f"<b>{label}</b>",
-        x=0.5, y=0.5, showarrow=False,
-        font=dict(family="Syne", size=12, color=MUTED),
-        align="center",
-    )
-    fig.update_layout(**plotly_layout(height=320))
-    return fig
-
-def waterfall_chart(result: dict):
-    labels = (
-        ["Base (Kontraktor)"]
-        + list(result["fixed_comps"].keys())
-        + list(result["progressive_comps"].keys())
-        + (["Diskresi Menteri"] if result["ministerial_adj"] != 0 else [])
-        + ["Final (Kontraktor)"]
-    )
-    values = (
-        [result["base_cont"]]
-        + list(result["fixed_comps"].values())
-        + list(result["progressive_comps"].values())
-        + ([result["ministerial_adj"]] if result["ministerial_adj"] != 0 else [])
-        + [result["final_cont"]]
-    )
-    measure = (
-        ["absolute"]
-        + ["relative"] * (len(labels) - 2)
-        + ["total"]
-    )
-    colors = []
-    for i, (m, v) in enumerate(zip(measure, values)):
-        if m == "absolute":   colors.append(SLATE)
-        elif m == "total":    colors.append(AMBER)
-        else:                 colors.append("#5DA897" if v >= 0 else "#C05050")
-
-    fig = go.Figure(go.Waterfall(
-        orientation="v",
-        measure=measure,
-        x=labels,
-        y=values,
-        text=[f"{v:+.2f}%" if m == "relative" else f"{v:.2f}%" for m, v in zip(measure, values)],
-        textposition="outside",
-        textfont=dict(family="DM Sans", size=10, color="#E8EEF4"),
-        connector=dict(line=dict(color=MUTED, width=1, dash="dot")),
-        increasing=dict(marker=dict(color="#5DA897")),
-        decreasing=dict(marker=dict(color="#C05050")),
-        totals=dict(marker=dict(color=AMBER)),
-        hovertemplate="<b>%{x}</b><br>%{y:.4f}%<extra></extra>",
-    ))
-    fig.update_layout(
-        **plotly_layout("Waterfall – Koreksi Split Kontraktor", height=440),
-        xaxis=dict(tickangle=-35, tickfont=dict(size=10, color=MUTED), gridcolor="rgba(255,255,255,0.04)"),
-        yaxis=dict(title="Split Kontraktor (%)", gridcolor="rgba(255,255,255,0.04)"),
-        showlegend=False,
-    )
-    return fig
-
-def bar_comparison(result: dict):
-    cats = list(result["fixed_comps"].keys()) + list(result["progressive_comps"].keys())
-    if result["ministerial_adj"] != 0:
-        cats.append("Diskresi Menteri")
-    vals = (list(result["fixed_comps"].values())
-            + list(result["progressive_comps"].values())
-            + ([result["ministerial_adj"]] if result["ministerial_adj"] != 0 else []))
-
-    colors = [AMBER if v > 0 else "#C05050" for v in vals]
-
-    fig = go.Figure(go.Bar(
-        x=cats, y=vals,
-        marker=dict(color=colors, line=dict(color="rgba(0,0,0,0.3)", width=1)),
-        text=[f"{v:+.2f}%" for v in vals],
-        textposition="outside",
-        textfont=dict(family="DM Sans", size=10, color="#E8EEF4"),
-        hovertemplate="<b>%{x}</b><br>Koreksi: %{y:.4f}%<extra></extra>",
-    ))
-    fig.update_layout(
-        **plotly_layout("Koreksi per Komponen (% Split Kontraktor)", height=400),
-        xaxis=dict(tickangle=-35, tickfont=dict(size=10, color=MUTED), gridcolor="rgba(255,255,255,0.04)"),
-        yaxis=dict(title="Koreksi (%)", gridcolor="rgba(255,255,255,0.04)"),
-        showlegend=False,
-    )
-    return fig
-
-
-# ─────────────────────────────────────────────
-#  SIDEBAR – INPUT PARAMETERS
-# ─────────────────────────────────────────────
-
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# 4. SIDEBAR \u2013 MODE SELECTOR + HEADER
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 with st.sidebar:
-    # ── Logo ──
-    logo_path = os.path.join("assets", "splitlogic.png")
-    if os.path.exists(logo_path):
-        st.image(logo_path, use_column_width=True)
+    if logo:
+        st.image(logo, use_container_width=True)
     else:
         st.markdown("""
         <div style="text-align:center;padding:20px 0 8px;">
           <span style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;
-                       color:#E8963C;letter-spacing:-0.02em;">⚡ SplitLogic</span>
+                       color:#E8963C;letter-spacing:-0.02em;">\u26a1 PSCore</span>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="text-align:center;margin-bottom:24px;">
-      <span class="badge">TM3203</span>
-      <span class="badge">ITB</span>
+    <div style="text-align:center;margin-bottom:18px;">
+      <span class="badge">PSCore</span>
+      <span class="badge">v1.0</span>
     </div>
     """, unsafe_allow_html=True)
-
     st.markdown("---")
 
-    # ── Commodity ──
-    st.markdown('<div class="sl-section-tag">Komoditas</div>', unsafe_allow_html=True)
-    commodity = st.radio("Jenis Komoditas", ["Minyak Bumi", "Gas Bumi"], horizontal=True)
-
-    st.markdown("---")
-    st.markdown('<div class="sl-section-tag">Fixed Components</div>', unsafe_allow_html=True)
-
-    field_status = st.selectbox(
-        "1 · Status Lapangan (Field Status)",
-        ["No POD", "POD I", "POD II"],
+    st.markdown('<div class="sl-section-tag">Pilih Modul</div>', unsafe_allow_html=True)
+    app_mode = st.radio(
+        "Skema PSC",
+        ["\ud83d\udcb0 Cost Recovery (PSChii)", "\u26a1 Gross Split (SplitLogic)"],
+        index=0,
     )
+    st.markdown("---")
 
-    is_offshore = st.radio("Lokasi Lapangan", ["Onshore", "Offshore"], horizontal=True) == "Offshore"
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588  MODULE A \u2013 COST RECOVERY (PSChii)  \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588
+# \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+if app_mode == "\ud83d\udcb0 Cost Recovery (PSChii)":
 
-    water_depth = 0.0
-    if is_offshore:
-        water_depth = st.number_input(
-            "2 · Kedalaman Air (m)", min_value=0.0, value=30.0, step=1.0,
-            help="Kedalaman air laut dalam meter"
+    # \u2500\u2500 Sidebar inputs \u2500\u2500
+    with st.sidebar:
+        st.markdown("### \u2699\ufe0f Input Parameter")
+
+        with st.sidebar.expander("\ud83d\udcc8 Production Profile", expanded=True):
+            q_initial     = st.number_input("Initial Rate (BOPD)", value=0, step=1000)
+            q_peak        = st.number_input("Peak Rate (BOPD)", value=0, step=1000)
+            plateau_years = st.number_input("Plateau Duration (Years)", value=0, step=1)
+            decline_rate  = st.number_input("Decline Rate (%)", value=0.0, step=1.0) / 100
+            prod_years    = st.number_input("Production Duration (Years)", value=0, step=1)
+
+        with st.sidebar.expander("\ud83c\udfd7\ufe0f CAPEX (Exploration & Dev)", expanded=False):
+            exp_years = st.number_input("Exploration Duration (Years)", value=0, step=1)
+            st.markdown("**Exploration Cost (MUS$)**")
+            df_exp = pd.DataFrame({"Tahun": range(1, int(exp_years)+1),
+                                   "Biaya": [0]*int(exp_years)})
+            edit_exp = st.data_editor(df_exp, hide_index=True, use_container_width=True, key="editor_exp")
+            exp_costs_input = ",".join(edit_exp["Biaya"].astype(str))
+
+            dev_years = st.number_input("Development Duration (Years)", value=0, step=1)
+            st.markdown("**Development Cost (MUS$)**")
+            df_dev = pd.DataFrame({"Tahun": range(1, int(dev_years)+1),
+                                   "Biaya": [0]*int(dev_years)})
+            edit_dev = st.data_editor(df_dev, hide_index=True, use_container_width=True, key="editor_dev")
+            dev_costs_input = ",".join(edit_dev["Biaya"].astype(str))
+
+            tangible_pct  = st.number_input("Tangible Split (%)", value=0.0, step=1.0) / 100
+            intangible_pct = 1.0 - tangible_pct
+            st.caption(f"\u21b3 *Implied Intangible Split:* **{intangible_pct*100:.1f}%**")
+
+        with st.sidebar.expander("\ud83d\udcb0 Economic & PSC Terms", expanded=False):
+            oil_price           = st.number_input("Oil Price ($/bbl)", value=0.0, step=1.0)
+            opex_per_bbl        = st.number_input("Opex ($/bbl)", value=0.0, step=1.0)
+            ftp_rate            = st.number_input("FTP (%)", value=0.0, step=1.0) / 100
+            tax_rate            = st.number_input("Corporate Tax (%)", value=0.0, step=1.0) / 100
+            gov_split_after_tax = st.number_input("Gov After-Tax Split (%)", value=0.0, step=1.0) / 100
+            st.markdown("**Domestic Market Obligation (DMO)**")
+            dmo_volume_rate     = st.number_input("DMO Volume Obligation (%)", value=0.0, step=1.0) / 100
+            dmo_fee_rate        = st.number_input("DMO Fee Rate (%)", value=0.0, step=1.0) / 100
+            dmo_holiday_years   = st.number_input("DMO Holiday Duration (Years)", value=0, step=1)
+            discount_rate       = st.number_input("Discount Rate for NPV (%)", value=0.0, step=1.0) / 100
+
+            ctr_split_after_tax  = 1 - gov_split_after_tax
+            ctr_split_before_tax = ctr_split_after_tax / (1 - tax_rate) if tax_rate != 1 else 0
+            gov_split_before_tax = 1 - ctr_split_before_tax
+            st.info(f"""
+            **\ud83d\udcca Implied Split Breakdown:**
+            - Ctr After-Tax: **{ctr_split_after_tax*100:.2f}%**
+            - Gov Before-Tax: **{gov_split_before_tax*100:.2f}%**
+            - Ctr Before-Tax: **{ctr_split_before_tax*100:.2f}%**
+            """)
+
+        with st.sidebar.expander("\ud83d\udcc9 Depreciation Rules", expanded=False):
+            dep_group = st.selectbox("Tangible Depreciation Group",
+                                     ["Group 1 (50%)", "Group 2 (25%)", "Group 3 (12.5%)"])
+            dep_years = st.number_input("Target Depreciation (Years)", value=1, min_value=1, step=1)
+
+    # \u2500\u2500 Live Oil Price \u2500\u2500
+    @st.cache_data(ttl=3600)
+    def fetch_live_oil_prices():
+        if not YFINANCE_OK:
+            return {"status": "failed"}
+        try:
+            brent = yf.Ticker("BZ=F").history(period="2d")
+            wti   = yf.Ticker("CL=F").history(period="2d")
+            bp    = brent['Close'].iloc[-1]; bprev = brent['Close'].iloc[-2]
+            wp    = wti['Close'].iloc[-1];   wprev = wti['Close'].iloc[-2]
+            return {
+                "brent": {"price": bp, "change": (bp-bprev)/bprev*100},
+                "wti":   {"price": wp, "change": (wp-wprev)/wprev*100},
+                "status": "success"
+            }
+        except Exception:
+            return {"status": "failed"}
+
+    live_prices = fetch_live_oil_prices()
+
+    # \u2500\u2500 Core Model \u2500\u2500
+    def run_psc_model(override_oil_price=None, capex_mult=1.0):
+        current_oil_price = override_oil_price if override_oil_price is not None else oil_price
+
+        try:
+            exploration_costs_list = [(float(x.strip()) * capex_mult) for x in exp_costs_input.split(',')]
+        except ValueError:
+            exploration_costs_list = [0]
+        try:
+            development_costs_list = [(float(x.strip()) * capex_mult) for x in dev_costs_input.split(',')]
+        except ValueError:
+            development_costs_list = [0]
+
+        exploration_costs_list = (exploration_costs_list + [0]*int(exp_years))[:int(exp_years)]
+        development_costs_list = (development_costs_list + [0]*int(dev_years))[:int(dev_years)]
+
+        actual_prod_years = int(prod_years) + 1
+        prod_start_year   = int(exp_years) + int(dev_years)
+        total_years       = prod_start_year + actual_prod_years
+        years_array       = np.arange(1, total_years + 1)
+
+        exp_costs  = np.zeros(total_years)
+        exp_costs[0:int(exp_years)] = exploration_costs_list
+        dev_costs  = np.zeros(total_years)
+        dev_costs[int(exp_years):prod_start_year] = development_costs_list
+        dev_tangible   = dev_costs * tangible_pct
+        dev_intangible = dev_costs * intangible_pct
+
+        prod_bopd = np.zeros(total_years)
+        if actual_prod_years > 0:
+            prod_bopd[prod_start_year] = q_initial
+            for i in range(1, min(int(plateau_years)+1, actual_prod_years)):
+                if prod_start_year + i < total_years:
+                    prod_bopd[prod_start_year + i] = q_peak
+            for i in range(int(plateau_years)+1, actual_prod_years):
+                if prod_start_year + i < total_years:
+                    prod_bopd[prod_start_year+i] = prod_bopd[prod_start_year+i-1] * (1-decline_rate)
+
+        prod_mstb = (prod_bopd * 365) / 1000
+
+        rate_map = {"Group 1 (50%)": 0.50, "Group 2 (25%)": 0.25, "Group 3 (12.5%)": 0.125}
+        depreciation_rate = rate_map[dep_group]
+        dep_sched = []
+        bal = 1.0
+        for i in range(int(dep_years)):
+            if i == int(dep_years) - 1:
+                dep_sched.append(bal)
+            else:
+                chg = bal * depreciation_rate
+                dep_sched.append(chg)
+                bal -= chg
+
+        total_tangible_pool = np.sum(dev_tangible)
+        depreciation = np.zeros(total_years)
+        for i, pct in enumerate(dep_sched):
+            ty = prod_start_year + i
+            if ty < total_years:
+                depreciation[ty] = total_tangible_pool * pct
+
+        finding_amort   = np.zeros(total_years)
+        intangible_amort = np.zeros(total_years)
+        if prod_start_year < total_years:
+            finding_amort[prod_start_year]    = np.sum(exp_costs)
+            intangible_amort[prod_start_year] = np.sum(dev_intangible)
+
+        gross_revenue = prod_mstb * current_oil_price
+        opex          = prod_mstb * opex_per_bbl
+        ftp           = gross_revenue * ftp_rate
+        gov_ftp       = ftp * gov_split_before_tax
+        ctr_ftp       = ftp * ctr_split_before_tax
+        gr_minus_ftp  = gross_revenue - ftp
+        total_costs_amort = finding_amort + intangible_amort + depreciation + opex
+
+        recovered = np.zeros(total_years)
+        unrecovered = np.zeros(total_years)
+        ets = np.zeros(total_years)
+        cur_unrk = 0
+
+        for i in range(total_years):
+            if prod_mstb[i] > 0:
+                pool = cur_unrk + total_costs_amort[i]
+                recovered[i] = min(gr_minus_ftp[i], pool)
+                cur_unrk = pool - recovered[i]
+                unrecovered[i] = cur_unrk
+                ets[i] = gr_minus_ftp[i] - recovered[i]
+
+        gov_equity = ets * gov_split_before_tax
+        ctr_equity = ets * ctr_split_before_tax
+
+        dmo_gross = np.zeros(total_years)
+        dmo_fee   = np.zeros(total_years)
+        for i in range(total_years):
+            if prod_mstb[i] > 0:
+                prod_year = i - prod_start_year + 1
+                if prod_year == 1:
+                    pass
+                elif prod_year <= int(dmo_holiday_years):
+                    dmo_gross[i] = gross_revenue[i] * ctr_split_before_tax * dmo_volume_rate
+                    dmo_fee[i]   = dmo_gross[i]
+                else:
+                    dmo_gross[i] = gross_revenue[i] * ctr_split_before_tax * dmo_volume_rate
+                    dmo_fee[i]   = dmo_gross[i] * dmo_fee_rate
+
+        dmo_penalty    = dmo_gross - dmo_fee
+        net_ctr_share  = np.where(prod_mstb > 0, ctr_ftp + ctr_equity - dmo_penalty, 0)
+        taxable_income = np.maximum(0, net_ctr_share)
+        tax_paid       = taxable_income * tax_rate
+
+        cash_in  = np.where(prod_mstb > 0, recovered + net_ctr_share, 0)
+        cash_out = np.where(prod_mstb > 0, opex + tax_paid, exp_costs + dev_tangible + dev_intangible)
+        net_cf   = np.where(prod_mstb > 0, cash_in - cash_out, -cash_out)
+        gov_take = gov_ftp + gov_equity + dmo_penalty + tax_paid
+
+        return dict(
+            years=years_array, prod_bopd=prod_bopd, prod_mstb=prod_mstb,
+            gross_revenue=gross_revenue, recovered=recovered, unrecovered=unrecovered,
+            net_cf=net_cf, gov_take=gov_take, tax_paid=tax_paid,
+            total_costs_amort=total_costs_amort, cash_in=cash_in, cash_out=cash_out,
+            exp_costs=exp_costs, dev_tangible=dev_tangible, dev_intangible=dev_intangible,
+            ftp=ftp, gov_ftp=gov_ftp, ctr_ftp=ctr_ftp,
+            gov_equity=gov_equity, ctr_equity=ctr_equity,
+            dmo_penalty=dmo_penalty, finding_amort=finding_amort,
+            depreciation=depreciation, intangible_amort=intangible_amort,
+            opex=opex, gr_minus_ftp=gr_minus_ftp, ets=ets,
+            net_ctr_share=net_ctr_share, dmo_gross=dmo_gross, dmo_fee=dmo_fee,
+            prod_start_year=prod_start_year, total_years=total_years,
         )
-    else:
-        st.markdown("**2 · Lokasi:** Onshore → Koreksi **0%**")
 
-    reservoir_depth = st.number_input(
-        "3 · Kedalaman Reservoir (m)", min_value=0.0, value=2600.0, step=50.0,
-        help="> 2500 m → +1%"
-    )
+    results = run_psc_model()
 
-    infrastructure = st.selectbox(
-        "4 · Infrastruktur",
-        ["Well Developed", "New Frontier Offshore", "New Frontier Onshore"],
-    )
+    # \u2500\u2500 KPIs \u2500\u2500
+    total_gross_revenue = np.sum(results['gross_revenue'])
+    total_gov_take      = np.sum(results['gov_take'])
+    gov_take_pct        = total_gov_take / total_gross_revenue if total_gross_revenue > 0 else 0
+    total_ctr_take_at   = np.sum(results['net_ctr_share']) - np.sum(results['tax_paid'])
 
-    reservoir_type = st.selectbox(
-        "5 · Jenis Reservoir",
-        ["Konvensional (Sandstone / Limestone / Carbonate)",
-         "Non-Konvensional (Shale / CBM)"],
-    )
+    npv_base = npf.npv(discount_rate, results['net_cf']) / (1 + discount_rate)
+    try:
+        irr_base = npf.irr(results['net_cf'])
+    except Exception:
+        irr_base = float('nan')
 
-    co2_pct = st.number_input(
-        "6 · Kandungan CO₂ (%)", min_value=0.0, max_value=100.0, value=5.0, step=0.5
-    )
+    cumulative_cf = np.cumsum(results['net_cf'])
+    payback_year  = "-"
+    for y, val in enumerate(cumulative_cf):
+        if val >= 0 and y >= results['prod_start_year']:
+            payback_year = f"Year {y+1}"
+            break
 
-    h2s_ppm = st.number_input(
-        "7 · Kandungan H₂S (ppm)", min_value=0.0, value=50.0, step=10.0
-    )
+    bep_price = 0
+    for test_p in range(10, 200):
+        tr = run_psc_model(override_oil_price=test_p)
+        if (npf.npv(discount_rate, tr['net_cf']) / (1 + discount_rate)) > 0:
+            bep_price = test_p
+            break
 
-    api = st.number_input(
-        "8 · Specific Gravity (°API)", min_value=0.0, max_value=70.0, value=30.0, step=0.5
-    )
-
-    tkdn_pct = st.number_input(
-        "9 · TKDN (%)", min_value=0.0, max_value=100.0, value=55.0, step=1.0
-    )
-
-    prod_stage = st.selectbox(
-        "10 · Tahapan Produksi",
-        ["Primary", "Sekunder (Injeksi Air / Gas)", "Tersier (EOR)"],
-    )
-
-    st.markdown("---")
-    st.markdown('<div class="sl-section-tag">Progressive Components</div>', unsafe_allow_html=True)
-
-    if commodity == "Minyak Bumi":
-        icp_price = st.number_input(
-            "11 · Harga Minyak ICP (US$/BBL)", min_value=0.0, value=75.0, step=1.0,
-            help="< 85: koreksi = (85 − ICP) × 0.25%"
-        )
-        gas_price = 8.0
-    else:
-        gas_price = st.number_input(
-            "11 · Harga Gas Bumi (US$/MMBTU)", min_value=0.0, value=7.0, step=0.1,
-            help="< 7: (7−x)×2.5% | 7–10: 0% | >10: (x−10)×2.5%"
-        )
-        icp_price = 85.0
-
-    nett_prod = st.number_input(
-        "12 · Kumulatif Produksi (MMBOE)", min_value=0.0, value=25.0, step=1.0
-    )
-
-    st.markdown("---")
-    st.markdown('<div class="sl-section-tag">Pasal 7 – Diskresi Menteri</div>', unsafe_allow_html=True)
-    ministerial_adj = st.number_input(
-        "Tambahan / Pengurangan Split Kontraktor (%)",
-        value=0.0, step=0.5,
-        help="Positif = tambahan untuk Kontraktor | Negatif = tambahan untuk Negara"
-    )
-
-    st.markdown("---")
-    calc_btn = st.button("Hitung Gross Split", use_container_width=True)
-
-
-# ─────────────────────────────────────────────
-#  MAIN AREA
-# ─────────────────────────────────────────────
-
-# ── Hero ──
-col_logo, col_hero = st.columns([1, 4])
-with col_logo:
-    if os.path.exists(logo_path):
-        st.image(logo_path, width=110)
-    else:
-        st.markdown(
-            '<div style="font-size:4rem;text-align:center;padding-top:8px;">⚡</div>',
-            unsafe_allow_html=True,
-        )
-with col_hero:
-    st.markdown("""
-    <div class="hero-title">SplitLogic</div>
-    <div class="hero-sub">
-      Kalkulator Bagi Hasil <strong style="color:#E8963C">Gross Split</strong> — Permen ESDM No. 8 Tahun 2017<br>
-      <span class="badge" style="margin-top:8px;display:inline-block;">TM3203 · Manajemen & Keekonomian Proyek</span>
-      <span class="badge">Teknik Perminyakan ITB</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────
-#  TABS
-# ─────────────────────────────────────────────
-tab_calc, tab_ref, tab_about = st.tabs(["Kalkulator", "Tabel Referensi", "Tentang"])
-
-# ══════════════════════════════════════════════
-#  TAB 1 – KALKULATOR
-# ══════════════════════════════════════════════
-with tab_calc:
-    if not calc_btn:
+    # \u2500\u2500 HEADER \u2500\u2500
+    col_logo, col_title = st.columns([1, 10])
+    with col_logo:
+        if logo:
+            st.image(logo, use_container_width=True)
+    with col_title:
         st.markdown("""
-        <div class="sl-card" style="text-align:center;padding:48px 24px;">
-          <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;
-                      color:#E8EEF4;margin-bottom:8px;">
-            SplitLogic
-          </div>
-          <div style="color:#8BA3BC;font-size:0.9rem;max-width:480px;margin:0 auto;">
-            Isi seluruh parameter di sidebar kiri, lalu klik
-            <strong style="color:#E8963C">Hitung Gross Split</strong> untuk memulai kalkulasi.
-          </div>
-        </div>
+        <h1 style="margin-bottom:0;">
+          PSCore
+          <span class="mode-pill">Cost Recovery</span>
+        </h1>
+        <p style="color:var(--muted);margin-top:4px;font-size:0.9rem;">
+          PSC Cost Recovery Financial Modeller \u2014 formerly <em>PSChii</em>
+        </p>
         """, unsafe_allow_html=True)
-    else:
-        params = dict(
-            commodity=commodity,
-            field_status=field_status,
-            is_offshore=is_offshore,
-            water_depth=water_depth,
-            reservoir_depth=reservoir_depth,
-            infrastructure=infrastructure,
-            reservoir_type=reservoir_type,
-            co2_pct=co2_pct,
-            h2s_ppm=h2s_ppm,
-            api=api,
-            tkdn_pct=tkdn_pct,
-            prod_stage=prod_stage,
-            icp_price=icp_price,
-            gas_price=gas_price,
-            nett_prod=nett_prod,
-            ministerial_adj=ministerial_adj,
-        )
-        res = calculate_gross_split(params)
+    st.markdown("---")
 
-        # ── Alert if final > 100 or < 0 ──
-        if res["final_cont"] > 100 or res["final_gov"] < 0:
-            st.warning("⚠️ Split Kontraktor melebihi 100% — periksa kembali input parameter.")
-        elif res["final_gov"] < 0:
-            st.warning("⚠️ Split Pemerintah bernilai negatif — periksa kembali input parameter.")
+    # \u2500\u2500 Tabs \u2500\u2500
+    tab1, tab2, tab3, tab_about = st.tabs(["\ud83d\udcca Dashboard", "\ud83d\udcd1 Economic Tables", "\ud83d\udcc8 Sensitivity", "\u2139\ufe0f About"])
 
-        # ── KPI Row ──
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Base Split – Kontraktor", f"{res['base_cont']:.2f}%", f"Komoditas: {commodity}")
-        k2.metric("Total Koreksi", f"+{res['total_correction']:.4f}%",
-                  f"{len(res['fixed_comps'])} fixed + {len(res['progressive_comps'])} progressive")
-        k3.metric("Final – Kontraktor", f"{res['final_cont']:.4f}%",
-                  f"+{res['total_correction']:.4f}% dari base")
-        k4.metric("Final – Pemerintah", f"{res['final_gov']:.4f}%",
-                  f"{res['base_gov']:.0f}% base")
+    # \u2500\u2500 TAB 1: Dashboard \u2500\u2500
+    with tab1:
+        if live_prices.get("status") == "success":
+            st.markdown("##### \ud83c\udf0d Live Global Oil Market (Reference Only)")
+            p1, p2, _, _ = st.columns(4)
+            p1.metric("Brent Crude (BZ=F)",
+                      f"${live_prices['brent']['price']:.2f}/bbl",
+                      f"{live_prices['brent']['change']:.2f}%")
+            p2.metric("WTI Crude (CL=F)",
+                      f"${live_prices['wti']['price']:.2f}/bbl",
+                      f"{live_prices['wti']['change']:.2f}%")
+            st.markdown("---")
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("### \ud83c\udfc6 Key Economic Indicators")
+        c1,c2,c3,c4,c5,c6 = st.columns(6)
+        c1.metric("Reserve (MMBO)",              f"{np.sum(results['prod_mstb'])/1000:.2f}")
+        c2.metric(f"NPV @{discount_rate*100:.0f}% (MUS$)", f"{npv_base:,.0f}")
+        c3.metric("IRR Full Cycle",              f"{irr_base:.2%}" if not np.isnan(irr_base) else "-")
+        c4.metric("Gov Take (%)",                f"{gov_take_pct:.2%}")
+        c5.metric("Payback Period",              payback_year)
+        c6.metric("Break-Even Price",            f"${bep_price}/bbl")
+        st.markdown("---")
 
-        # ── Charts Row ──
-        c_donut, c_bar = st.columns([1, 2])
-        with c_donut:
-            st.plotly_chart(
-                donut_chart(res["final_gov"], res["final_cont"]),
-                use_container_width=True,
-            )
-        with c_bar:
-            st.plotly_chart(bar_comparison(res), use_container_width=True)
+        # Gantt
+        st.markdown("### \ud83d\udcc5 Project Phase Timeline")
+        df_tl = pd.DataFrame([
+            dict(Task="Exploration Phase", Start=1,                       Finish=int(exp_years),                    Color="#E18D11"),
+            dict(Task="Development Phase", Start=int(exp_years)+1,        Finish=int(exp_years)+int(dev_years),     Color="#17BECF"),
+            dict(Task="Production Phase",  Start=int(exp_years)+int(dev_years)+1, Finish=results['total_years'],   Color="#2CA02C"),
+        ])
+        fig_gantt = go.Figure()
+        for _, row in df_tl.iterrows():
+            if row['Finish'] >= row['Start']:
+                fig_gantt.add_trace(go.Bar(
+                    x=[row['Finish']-row['Start']+1], y=[row['Task']],
+                    base=[row['Start']-1], orientation='h',
+                    marker_color=row['Color'], name=row['Task'],
+                    text=f"Year {row['Start']} to {row['Finish']}",
+                    textposition="inside",
+                ))
+        fig_gantt.update_layout(barmode='stack', height=200, xaxis_title="Project Year",
+                                showlegend=False, **plotly_layout())
+        st.plotly_chart(fig_gantt, use_container_width=True)
+        st.markdown("---")
 
-        # ── Waterfall ──
-        st.plotly_chart(waterfall_chart(res), use_container_width=True)
+        cc1, cc2 = st.columns(2)
+        with cc1:
+            fig_prod = make_subplots(specs=[[{"secondary_y": True}]])
+            fig_prod.add_trace(go.Bar(x=results['years'], y=results['prod_bopd'],
+                                     name="BOPD", marker_color=SLATE), secondary_y=False)
+            fig_prod.add_trace(go.Scatter(x=results['years'], y=np.cumsum(results['prod_mstb']),
+                                          name="Cum. Prod (MSTB)",
+                                          line=dict(color=AMBER, width=3)), secondary_y=True)
+            fig_prod.update_layout(**plotly_layout("\ud83d\udcc8 Production Profile & Cumulative"))
+            fig_prod.update_yaxes(title_text="BOPD", secondary_y=False)
+            fig_prod.update_yaxes(title_text="MSTB (Cumulative)", secondary_y=True)
+            st.plotly_chart(fig_prod, use_container_width=True)
 
-        # ── Breakdown Table ──
-        st.markdown("###Rincian Komponen")
-        rows = []
-        for comp, val in res["fixed_comps"].items():
-            rows.append({"Komponen": comp, "Tipe": "Fixed", "Koreksi Split Kontraktor (%)": f"+{val:.2f}%"})
-        for comp, val in res["progressive_comps"].items():
-            rows.append({"Komponen": comp, "Tipe": "Progressive", "Koreksi Split Kontraktor (%)": f"+{val:.4f}%"})
-        if res["ministerial_adj"] != 0:
-            rows.append({
-                "Komponen": "Diskresi Menteri (Pasal 7)",
-                "Tipe": "Ministerial",
-                "Koreksi Split Kontraktor (%)": f"{res['ministerial_adj']:+.2f}%",
-            })
+        with cc2:
+            fig_cf = go.Figure()
+            bar_colors = [AMBER if v >= 0 else "#C05050" for v in results['net_cf']]
+            fig_cf.add_trace(go.Bar(x=results['years'], y=results['net_cf'],
+                                    name="Yearly CF", marker_color=bar_colors))
+            fig_cf.add_trace(go.Scatter(x=results['years'], y=cumulative_cf,
+                                         name="Cumulative CF",
+                                         line=dict(color="#F5B96B", width=3)))
+            fig_cf.update_layout(**plotly_layout("\ud83d\udcb5 Contractor Net Cash Flow"),
+                                 yaxis_title="MUS$")
+            st.plotly_chart(fig_cf, use_container_width=True)
 
-        df = pd.DataFrame(rows)
-        df.index = df.index + 1
-        st.dataframe(df, use_container_width=True)
+        st.markdown("---")
+        cc3, cc4 = st.columns(2)
 
-        # ── Summary Box ──
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(f"""
-        <div class="sl-card" style="border-color:rgba(232,150,60,0.4);">
-          <div class="sl-section-tag">Ringkasan Final</div>
-          <table style="width:100%;border-collapse:collapse;margin-top:12px;">
-            <thead>
-              <tr style="border-bottom:1px solid rgba(232,150,60,0.2);">
-                <th style="text-align:left;padding:8px 0;font-family:'Syne',sans-serif;
-                           font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;
-                           color:#8BA3BC;">Parameter</th>
-                <th style="text-align:right;padding:8px 0;font-family:'Syne',sans-serif;
-                           font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;
-                           color:#8BA3BC;">Pemerintah</th>
-                <th style="text-align:right;padding:8px 0;font-family:'Syne',sans-serif;
-                           font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;
-                           color:#8BA3BC;">Kontraktor</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                <td style="padding:10px 0;color:#8BA3BC;">Base Split</td>
-                <td style="text-align:right;padding:10px 0;">{res['base_gov']:.2f}%</td>
-                <td style="text-align:right;padding:10px 0;">{res['base_cont']:.2f}%</td>
-              </tr>
-              <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-                <td style="padding:10px 0;color:#8BA3BC;">Total Koreksi</td>
-                <td style="text-align:right;padding:10px 0;color:#8BA3BC;">−{res['total_correction']:.4f}%</td>
-                <td style="text-align:right;padding:10px 0;color:#5DA897;">+{res['total_correction']:.4f}%</td>
-              </tr>
-              <tr>
-                <td style="padding:12px 0;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;">
-                  Final Split
-                </td>
-                <td style="text-align:right;padding:12px 0;font-family:'Syne',sans-serif;
-                           font-weight:700;font-size:1.2rem;color:#2C6EA3;">
-                  {res['final_gov']:.4f}%
-                </td>
-                <td style="text-align:right;padding:12px 0;font-family:'Syne',sans-serif;
-                           font-weight:800;font-size:1.4rem;color:#E8963C;">
-                  {res['final_cont']:.4f}%
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        """, unsafe_allow_html=True)
+        with cc3:
+            st.markdown("### \ud83c\udf0a PSC Distribution Waterfall")
+            fig_wf = go.Figure(go.Waterfall(
+                orientation="v",
+                measure=["relative","relative","relative","relative","relative","relative","total"],
+                x=["Gross Revenue","Cost Recovery","Gov FTP","Gov Equity","DMO Penalty","Corp Tax","Contractor Take"],
+                y=[total_gross_revenue, -np.sum(results['recovered']),
+                   -np.sum(results['gov_ftp']), -np.sum(results['gov_equity']),
+                   -np.sum(results['dmo_penalty']), -np.sum(results['tax_paid']),
+                   total_ctr_take_at],
+                decreasing=dict(marker=dict(color="#C05050")),
+                increasing=dict(marker=dict(color=SLATE)),
+                totals=dict(marker=dict(color=AMBER)),
+            ))
+            fig_wf.update_layout(**plotly_layout("Revenue Distribution Waterfall"))
+            st.plotly_chart(fig_wf, use_container_width=True)
 
+        with cc4:
+            st.markdown("### \ud83e\udd67 Gross Revenue Allocation")
+            fig_pie = go.Figure(data=[go.Pie(
+                labels=['Cost Recovery', 'Government Take', 'Contractor Take (After Tax)'],
+                values=[np.sum(results['recovered']), total_gov_take, total_ctr_take_at],
+                hole=.4,
+                marker_colors=[SLATE, MUTED, AMBER],
+                textinfo='label+percent',
+            )])
+            fig_pie.update_layout(**plotly_layout("Proporsi Pembagian Total Pendapatan"))
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-# ══════════════════════════════════════════════
-#  TAB 2 – TABEL REFERENSI
-# ══════════════════════════════════════════════
-with tab_ref:
-    st.markdown("###Tabel Komponen Gross Split")
-    st.markdown("Berdasarkan **Peraturan Menteri ESDM No. 8 Tahun 2017** tentang Kontrak Bagi Hasil Gross Split.")
-
-    # Base split
-    with st.expander("Base Split", expanded=True):
-        st.dataframe(pd.DataFrame({
-            "Komoditas":          ["Minyak Bumi", "Gas Bumi"],
-            "Pemerintah (%)":     [57, 52],
-            "Kontraktor (%)":     [43, 48],
-        }), use_container_width=True, hide_index=True)
-
-    # Fixed components tables
-    with st.expander("Fixed Components (10 Komponen)", expanded=False):
-        tables = {
-            "1. Field Status": pd.DataFrame({
-                "Parameter": ["POD I", "POD II", "No POD"],
-                "Koreksi Kontrak. (%)": [5, 3, 0],
-            }),
-            "2. Lokasi Lapangan": pd.DataFrame({
-                "Parameter": [
-                    "Onshore",
-                    "Offshore (0 < h ≤ 20 m)",
-                    "Offshore (20 < h ≤ 50 m)",
-                    "Offshore (50 < h ≤ 150 m)",
-                    "Offshore (150 < h ≤ 1000 m)",
-                    "Offshore (h > 1000 m)",
-                ],
-                "Koreksi Kontrak. (%)": [0, 8, 10, 12, 14, 16],
-            }),
-            "3. Kedalaman Reservoir": pd.DataFrame({
-                "Parameter": ["< 2500 m", "> 2500 m"],
-                "Koreksi Kontrak. (%)": [0, 1],
-            }),
-            "4. Infrastruktur": pd.DataFrame({
-                "Parameter": ["Well Developed", "New Frontier Offshore", "New Frontier Onshore"],
-                "Koreksi Kontrak. (%)": [0, 2, 4],
-            }),
-            "5. Jenis Reservoir": pd.DataFrame({
-                "Parameter": ["Konvensional (Sandstone, Limestone, Carbonate)", "Non-Konvensional (Shale, CBM)"],
-                "Koreksi Kontrak. (%)": [0, 15],
-            }),
-            "6. CO₂ (%)": pd.DataFrame({
-                "Parameter": ["x < 5", "5 ≤ x < 10", "10 ≤ x < 20", "20 ≤ x < 40", "40 ≤ x < 60", "x ≥ 60"],
-                "Koreksi Kontrak. (%)": [0, 0.5, 1, 1.5, 2, 4],
-            }),
-            "7. H₂S (ppm)": pd.DataFrame({
-                "Parameter": ["x < 100", "100 ≤ x < 1000", "1000 ≤ x < 2000",
-                              "2000 ≤ x < 3000", "3000 ≤ x < 4000", "x ≥ 4000"],
-                "Koreksi Kontrak. (%)": [0, 1, 2, 3, 4, 5],
-            }),
-            "8. SG / API": pd.DataFrame({
-                "Parameter": ["API < 25", "API ≥ 25"],
-                "Koreksi Kontrak. (%)": [1, 0],
-            }),
-            "9. TKDN (%)": pd.DataFrame({
-                "Parameter": ["x < 30", "30 ≤ x < 50", "50 ≤ x < 70", "x ≥ 70"],
-                "Koreksi Kontrak. (%)": [0, 2, 3, 4],
-            }),
-            "10. Tahapan Produksi": pd.DataFrame({
-                "Parameter": ["Primary", "Sekunder (Injeksi Air/Gas)", "Tersier (EOR)"],
-                "Koreksi Kontrak. (%)": [0, 6, 10],
-            }),
-        }
-        for title, df_t in tables.items():
-            st.markdown(f"**{title}**")
-            st.dataframe(df_t, use_container_width=True, hide_index=True)
-            st.markdown("")
-
-    with st.expander("Progressive Components (3 Komponen)", expanded=False):
-        st.markdown("**11a. Harga Minyak Bumi / ICP (US$/BBL)**")
-        st.dataframe(pd.DataFrame({
-            "Parameter":              ["ICP ≥ 85", "ICP < 85"],
-            "Koreksi Kontrak. (%)":   ["0%", "(85 − ICP) × 0.25%"],
-        }), use_container_width=True, hide_index=True)
-
-        st.markdown("**11b. Harga Gas Bumi (US$/MMBTU)**")
-        st.dataframe(pd.DataFrame({
-            "Parameter":              ["x < 7", "7 ≤ x < 10", "x ≥ 10"],
-            "Koreksi Kontrak. (%)":   ["(7 − x) × 2.5%", "0%", "(x − 10) × 2.5%"],
-        }), use_container_width=True, hide_index=True)
-
-        st.markdown("**12. Kumulatif Produksi (MMBOE)**")
-        st.dataframe(pd.DataFrame({
-            "Parameter": ["x < 30", "30 ≤ x < 60", "60 ≤ x < 90",
-                          "90 ≤ x < 125", "125 ≤ x < 175", "x ≥ 175"],
-            "Koreksi Kontrak. (%)": [10, 9, 8, 6, 4, 0],
-        }), use_container_width=True, hide_index=True)
-
-    with st.expander("Pasal 7 – Diskresi Menteri", expanded=False):
-        st.markdown("""
-**Ayat (1):** Jika keekonomian lapangan *tidak tercapai*, Menteri dapat menambah persentase
-bagi hasil kepada Kontraktor.
-
-**Ayat (2):** Jika keekonomian lapangan *melebihi* batas tertentu, Menteri dapat menambah
-persentase bagi hasil untuk Negara.
-
-**Ayat (3-5):** Penetapan berlaku untuk POD I dan/atau POD selanjutnya, dengan mempertimbangkan
-hasil evaluasi SKK Migas.
-        """)
-
-    with st.expander("Pasal 9 – Penyesuaian Progresif Bulanan", expanded=False):
-        st.markdown("""
-Penyesuaian akibat komponen progresif harga dilaksanakan **setiap bulan** berdasarkan
-evaluasi SKK Migas menggunakan rata-rata ICP seluruh lapangan dalam POD yang telah disetujui.
-        """)
-
-    with st.expander("Pasal 14 – Biaya Operasi sebagai Pengurang Pajak", expanded=False):
-        st.markdown("""
-Biaya operasi Kontraktor menjadi **unsur pengurang penghasilan** dalam perhitungan
-Pajak Penghasilan sesuai peraturan perpajakan hulu Migas yang berlaku.
-        """)
-
-
-# ══════════════════════════════════════════════
-#  TAB 3 – TENTANG
-# ══════════════════════════════════════════════
-with tab_about:
-    st.markdown("###Tentang Aplikasi")
-
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("""
-        <div class="sl-card">
-          <div class="sl-section-tag">Aplikasi</div>
-          <p style="margin-top:12px;line-height:1.8;">
-            <strong>SplitLogic</strong> adalah aplikasi kalkulator interaktif untuk menghitung
-            bagi hasil produksi minyak dan gas bumi menggunakan skema
-            <strong>Gross Split</strong> sesuai
-            <em>Peraturan Menteri ESDM No. 8 Tahun 2017</em>.
-          </p>
-          <p style="line-height:1.8;">
-            Aplikasi ini memungkinkan pengguna memasukkan seluruh 10 komponen tetap
-            (fixed) dan 3 komponen variabel (progressive) secara interaktif,
-            serta melihat visualisasi rincian koreksi split secara langsung.
-          </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with c2:
-        st.markdown("""
-        <div class="sl-card">
-          <div class="sl-section-tag">Informasi Akademik</div>
-          <table style="width:100%;margin-top:12px;border-collapse:collapse;">
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
-              <td style="padding:8px 0;color:#8BA3BC;font-size:0.85rem;">Mata Kuliah</td>
-              <td style="padding:8px 0;font-weight:600;">TM3203 – Manajemen & Keekonomian Proyek</td>
-            </tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
-              <td style="padding:8px 0;color:#8BA3BC;font-size:0.85rem;">Program Studi</td>
-              <td style="padding:8px 0;">Teknik Perminyakan</td>
-            </tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
-              <td style="padding:8px 0;color:#8BA3BC;font-size:0.85rem;">Fakultas</td>
-              <td style="padding:8px 0;">Teknik Pertambangan dan Perminyakan</td>
-            </tr>
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
-              <td style="padding:8px 0;color:#8BA3BC;font-size:0.85rem;">Institusi</td>
-              <td style="padding:8px 0;">Institut Teknologi Bandung (ITB)</td>
-            </tr>
-            <tr>
-              <td style="padding:8px 0;color:#8BA3BC;font-size:0.85rem;">Dosen Pengampu</td>
-              <td style="padding:8px 0;">
-                Dr. Adityawarman, S.T., M.T.<br>
-                Rafael J.S. Purba, S.T., M.T.
-            </tr>
-            <tr>
-              <td style="padding:8px 0;color:#8BA3BC;font-size:0.85rem;">Tim Pengembang</td>
-              <td style="padding:8px 0;">
-                Ibra Rabbani Dahlan (12223010)<br>
-                Abraham Gwen Bramanti (12223027)<br>
-                Daniel Syahputra Barus (12223074)<br>
-                Iqlima Ayarikka (12223083)               
-              </td>
-            </tr>
-          </table>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="sl-card" style="margin-top:8px;">
-      <div class="sl-section-tag">Dasar Hukum & Metodologi</div>
-      <ul style="margin-top:12px;line-height:2;color:#C8D8E8;">
-        <li><strong>Peraturan Menteri ESDM No. 8 Tahun 2017</strong> – Kontrak Bagi Hasil Gross Split</li>
-        <li>Komponen Fixed (10): Field Status, Lokasi, Kedalaman Reservoir, Infrastruktur,
-            Jenis Reservoir, CO₂, H₂S, SG/API, TKDN, Tahapan Produksi</li>
-        <li>Komponen Progressive (3): Harga Minyak/Gas, Kumulatif Produksi, Diskresi Menteri</li>
-        <li>Base Split Minyak: <strong>57% Pemerintah / 43% Kontraktor</strong></li>
-        <li>Base Split Gas: <strong>52% Pemerintah / 48% Kontraktor</strong></li>
-        <li>Seluruh koreksi bersifat <em>aditif</em> terhadap base split kontraktor</li>
-      </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="sl-card" style="margin-top:8px;">
-      <div class="sl-section-tag">Stack Teknologi</div>
-      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
-        <span class="badge">Python 3.13</span>
-        <span class="badge">Streamlit</span>
-        <span class="badge">Plotly</span>
-        <span class="badge">Pandas</span>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="sl-card" style="margin-top:8px;">
-      <div class="sl-section-tag">Feedback & Report</div>
-      <ul style="margin-top:12px;line-height:2;color:#C8D8E8;">
-        Untuk masukan atau pelaporan bug, silakan hubungi contact person melalui email: abraham.bramanti@outlook.com atau melalui LinkedIn: linkedin.com/in/abraham-bramanti
-      </ul>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ─────────────────────────────────────────────
-#  FOOTER
-# ─────────────────────────────────────────────
-st.markdown("""
-<div class="footer-text">
-  <strong style="color:#E8963C;">SplitLogic</strong> &nbsp;·&nbsp;
-  TM3203 Manajemen & Keekonomian Proyek &nbsp;·&nbsp;
-  Teknik Perminyakan ITB &nbsp;·&nbsp; 2026<br>
-  <span style="font-size:0.7rem;">
-    Copyright © 2026 Kelompok 16 &nbsp;|&nbsp; SplitLogic v.1.0
-  </span>
-</div>
-""", unsafe_allow_html=True)
+    # \u2500\u2500 TAB 2: Tables \u2500\u2500
+    with tab2:
+        st.subheader("\ud83d\udccb Annual Economic Summary")
+        total_yrs = results['total_years']
+        df_out = pd.DataFrame({
+            "Year":            results['years'],
+            "Prod (BOPD)":     np.round(results['prod_bopd'], 0),
+            "Prod (MSTB)":     np.round(results['prod_mstb'], 2),
+            "Gross Rev (MUS$)":np.round(results['gross_revenue'], 2),
+            "FTP (MUS$)":      np.round(results['ftp'], 2),
+            "Cost Rec (MUS$)": np.round(results['recovered'], 2),
+            "Unrecov (MUS$)":  np.round(results['unrecovered'], 2),
+            "ETS (MUS$)":      np.round(results['ets'], 2),
+            "Gov Equity":      np.round(results['gov_equity'], 2),
+            "Ctr Equity":      np.round(results['ctr
