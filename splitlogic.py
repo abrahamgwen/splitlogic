@@ -348,6 +348,7 @@ if app_mode == "💰 Cost Recovery (PSChii)":
         with st.sidebar.expander("📉 Depreciation Rules", expanded=False):
             dep_group = st.selectbox("Tangible Depreciation Group",
                                      ["Group 1 (50%)", "Group 2 (25%)", "Group 3 (12.5%)"])
+            # dep_years cannot be 0, keeping default at 1
             dep_years = st.number_input("Target Depreciation (Years)", value=1, min_value=1, step=1)
 
     # ── Live Oil Price ──
@@ -572,8 +573,8 @@ if app_mode == "💰 Cost Recovery (PSChii)":
         # Gantt
         st.markdown("### 📅 Project Phase Timeline")
         df_tl = pd.DataFrame([
-            dict(Task="Exploration Phase", Start=1,                       Finish=int(exp_years),                    Color="#E18D11"),
-            dict(Task="Development Phase", Start=int(exp_years)+1,        Finish=int(exp_years)+int(dev_years),     Color="#17BECF"),
+            dict(Task="Exploration Phase", Start=1,                        Finish=int(exp_years),                    Color="#E18D11"),
+            dict(Task="Development Phase", Start=int(exp_years)+1,         Finish=int(exp_years)+int(dev_years),      Color="#17BECF"),
             dict(Task="Production Phase",  Start=int(exp_years)+int(dev_years)+1, Finish=results['total_years'],   Color="#2CA02C"),
         ])
         fig_gantt = go.Figure()
@@ -945,32 +946,32 @@ else:
 
         field_status  = st.selectbox("1 · Status Lapangan", ["No POD", "POD I", "POD II"])
         is_offshore   = st.radio("Lokasi Lapangan", ["Onshore", "Offshore"], horizontal=True) == "Offshore"
-        water_depth   = st.number_input("2 · Kedalaman Air (m)", min_value=0.0, value=30.0, step=1.0) if is_offshore else 0.0
+        water_depth   = st.number_input("2 · Kedalaman Air (m)", min_value=0.0, value=0.0, step=1.0) if is_offshore else 0.0
         if not is_offshore:
             st.markdown("**2 · Lokasi:** Onshore → Koreksi **0%**")
 
-        reservoir_depth = st.number_input("3 · Kedalaman Reservoir (m)", min_value=0.0, value=2600.0, step=50.0)
+        reservoir_depth = st.number_input("3 · Kedalaman Reservoir (m)", min_value=0.0, value=0.0, step=50.0)
         infrastructure  = st.selectbox("4 · Infrastruktur",
                                        ["Well Developed", "New Frontier Offshore", "New Frontier Onshore"])
         reservoir_type  = st.selectbox("5 · Jenis Reservoir",
                                        ["Konvensional (Sandstone / Limestone / Carbonate)",
                                         "Non-Konvensional (Shale / CBM)"])
-        co2_pct  = st.number_input("6 · CO₂ (%)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
-        h2s_ppm  = st.number_input("7 · H₂S (ppm)", min_value=0.0, value=50.0, step=10.0)
-        api      = st.number_input("8 · API (°API)", min_value=0.0, max_value=70.0, value=30.0, step=0.5)
-        tkdn_pct = st.number_input("9 · TKDN (%)", min_value=0.0, max_value=100.0, value=55.0, step=1.0)
+        co2_pct  = st.number_input("6 · CO₂ (%)", min_value=0.0, max_value=100.0, value=0.0, step=0.5)
+        h2s_ppm  = st.number_input("7 · H₂S (ppm)", min_value=0.0, value=0.0, step=10.0)
+        api      = st.number_input("8 · API (°API)", min_value=0.0, max_value=70.0, value=0.0, step=0.5)
+        tkdn_pct = st.number_input("9 · TKDN (%)", min_value=0.0, max_value=100.0, value=0.0, step=1.0)
         prod_stage = st.selectbox("10 · Tahapan Produksi",
                                   ["Primary", "Sekunder (Injeksi Air / Gas)", "Tersier (EOR)"])
 
         st.markdown("---")
         st.markdown('<div class="sl-section-tag">Progressive Components</div>', unsafe_allow_html=True)
         if commodity == "Minyak Bumi":
-            icp_price = st.number_input("11 · Harga Minyak ICP (US$/BBL)", min_value=0.0, value=75.0, step=1.0)
-            gas_price = 8.0
+            icp_price = st.number_input("11 · Harga Minyak ICP (US$/BBL)", min_value=0.0, value=0.0, step=1.0)
+            gas_price = 0.0
         else:
-            gas_price = st.number_input("11 · Harga Gas (US$/MMBTU)", min_value=0.0, value=7.0, step=0.1)
-            icp_price = 85.0
-        nett_prod = st.number_input("12 · Kumulatif Produksi (MMBOE)", min_value=0.0, value=25.0, step=1.0)
+            gas_price = st.number_input("11 · Harga Gas (US$/MMBTU)", min_value=0.0, value=0.0, step=0.1)
+            icp_price = 0.0
+        nett_prod = st.number_input("12 · Kumulatif Produksi (MMBOE)", min_value=0.0, value=0.0, step=1.0)
 
         st.markdown("---")
         st.markdown('<div class="sl-section-tag">Pasal 7 – Diskresi Menteri</div>', unsafe_allow_html=True)
