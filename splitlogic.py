@@ -1,9 +1,12 @@
-# ==========================================
-# PSCore – PSC Modelling Suite
-# Combines: PSChii (Cost Recovery) + SplitLogic (Gross Split)
-# Theme: SplitLogic dark navy/amber aesthetic
-# ==========================================
+#region Judul
+# ──────────────────────────────────────────
+# SplitLogic v1.0 – PSC Modelling
+# Created by Abraham Gwen Bramanti
+# Last edited: 4/19/2026
+# ──────────────────────────────────────────
+#endregion
 
+#region Library
 # ──────────────────────────────────────────
 # 0. LIBRARY
 # ──────────────────────────────────────────
@@ -21,20 +24,24 @@ try:
     YFINANCE_OK = True
 except ImportError:
     YFINANCE_OK = False
+#endregion
 
+#region Page Config
 # ──────────────────────────────────────────
 # 1. PAGE CONFIG
 # ──────────────────────────────────────────
 logo_path = os.path.join("assets", "splitlogic.png")
 try:
     logo = Image.open(logo_path)
-    st.set_page_config(layout="wide", page_title="PSCore v1.0", page_icon=logo)
+    st.set_page_config(layout="wide", page_title="SplitLogic v1.0", page_icon=logo)
 except FileNotFoundError:
-    st.set_page_config(layout="wide", page_title="PSCore v1.0", page_icon="⚡")
+    st.set_page_config(layout="wide", page_title="SplitLogic v1.0", page_icon="⚡")
     logo = None
+#endregion
 
+#region CSS setting
 # ──────────────────────────────────────────
-# 2. GLOBAL CSS  (SplitLogic theme)
+# 2. GLOBAL CSS
 # ──────────────────────────────────────────
 st.markdown("""
 <style>
@@ -232,9 +239,11 @@ st.markdown("""
   }
 </style>
 """, unsafe_allow_html=True)
+#endregion
 
+#region Plotly
 # ──────────────────────────────────────────
-# 3. PLOTLY HELPERS (shared)
+# 3. PLOTLY HELPERS
 # ──────────────────────────────────────────
 AMBER = "#E8963C"
 NAVY  = "#1A3050"
@@ -258,9 +267,11 @@ def plotly_layout(title="", height=380):
             font=dict(size=11, color="#E8EEF4"),
         ),
     )
+#endregion
 
+#region Sidebar
 # ──────────────────────────────────────────
-# 4. SIDEBAR – MODE SELECTOR + HEADER
+# 4. SIDEBAR
 # ──────────────────────────────────────────
 with st.sidebar:
     if logo:
@@ -269,12 +280,12 @@ with st.sidebar:
         st.markdown("""
         <div style="text-align:center;padding:20px 0 8px;">
           <span style="font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;
-                       color:#E8963C;letter-spacing:-0.02em;">⚡ PSCore</span>
+                       color:#E8963C;letter-spacing:-0.02em;">⚡ SplitLogic</span>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("""
     <div style="text-align:center;margin-bottom:18px;">
-      <span class="badge">PSCore</span>
+      <span class="badge">SplitLogic</span>
       <span class="badge">v1.0</span>
     </div>
     """, unsafe_allow_html=True)
@@ -283,15 +294,17 @@ with st.sidebar:
     st.markdown('<div class="sl-section-tag">Pilih Modul</div>', unsafe_allow_html=True)
     app_mode = st.radio(
         "Skema PSC",
-        ["💰 Cost Recovery (PSChii)", "⚡ Gross Split (SplitLogic)"],
+        ["💰 Cost Recovery", "⚡ Gross Split"],
         index=0,
     )
     st.markdown("---")
+#endregion
 
-# ──────────────────────────────────────────────────────────────
-# ██████████████  MODULE A – COST RECOVERY (PSChii)  ██████████
-# ──────────────────────────────────────────────────────────────
-if app_mode == "💰 Cost Recovery (PSChii)":
+#region Cost Recovery
+# ──────────────────────────────────────────
+# 5. COST RECOVERY MODULE
+# ───────────────────────────────────────────
+if app_mode == "💰 Cost Recovery":
 
     # ── Sidebar inputs ──
     with st.sidebar:
@@ -535,11 +548,11 @@ if app_mode == "💰 Cost Recovery (PSChii)":
     with col_title:
         st.markdown("""
         <h1 style="margin-bottom:0;">
-          PSCore
+          SplitLogic
           <span class="mode-pill">Cost Recovery</span>
         </h1>
         <p style="color:var(--muted);margin-top:4px;font-size:0.9rem;">
-          PSC Cost Recovery Financial Modeller — formerly <em>PSChii</em>
+          PSC Cost Recovery Financial Modeller — <em>SplitLogic</em>
         </p>
         """, unsafe_allow_html=True)
     st.markdown("---")
@@ -738,8 +751,8 @@ if app_mode == "💰 Cost Recovery (PSChii)":
     with tab_about:
         st.markdown("""
         <div class="sl-card">
-          <div class="sl-section-tag">About PSCore – Cost Recovery Module</div>
-          <h3>PSChii: PSC Cost Recovery Financial Modeller</h3>
+          <div class="sl-section-tag">About SplitLogic – Cost Recovery Module</div>
+          <h3>PSC Cost Recovery Financial Modeller</h3>
           <p>
             Modul ini memodelkan skema <strong>Production Sharing Contract (PSC) Cost Recovery</strong>
             yang merupakan mekanisme kontrak antara Pemerintah dan Kontraktor dimana biaya operasional
@@ -758,12 +771,12 @@ if app_mode == "💰 Cost Recovery (PSChii)":
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown('<div class="footer-text">PSCore v1.0 · Cost Recovery Module (PSChii) · © 2025</div>',
+    st.markdown('<div class="footer-text">SplitLogic v1.0 · Cost Recovery Module · © 2026</div>',
                 unsafe_allow_html=True)
 
 
 # ──────────────────────────────────────────────────────────────
-# ██████████████  MODULE B – GROSS SPLIT (SplitLogic)  ████████
+# ██████████████  MODULE B – GROSS SPLIT  ████████
 # ──────────────────────────────────────────────────────────────
 else:
 
@@ -1000,11 +1013,11 @@ else:
     with col_hero:
         st.markdown(f"""
         <h1 style="margin-bottom:0;">
-          PSCore
+          SplitLogic
           <span class="mode-pill">Gross Split</span>
         </h1>
         <p style="color:var(--muted);margin-top:4px;font-size:0.9rem;">
-          PSC Gross Split Calculator — formerly <em>SplitLogic</em> &nbsp;|&nbsp;
+          PSC Gross Split Calculator — <em>SplitLogic</em> &nbsp;|&nbsp;
           Komoditas: <strong style="color:var(--amber);">{commodity}</strong>
         </p>
         """, unsafe_allow_html=True)
@@ -1118,8 +1131,8 @@ else:
     with tab_about:
         st.markdown("""
         <div class="sl-card">
-          <div class="sl-section-tag">About PSCore – Gross Split Module</div>
-          <h3>SplitLogic: PSC Gross Split Calculator</h3>
+          <div class="sl-section-tag">About SplitLogic – Gross Split Module</div>
+          <h3>PSC Gross Split Calculator</h3>
           <p>
             Modul ini menghitung <strong>PSC Gross Split</strong> sesuai dengan regulasi Indonesia
             (Permen ESDM No. 52 Tahun 2017 dan perubahannya), dimana bagi hasil ditetapkan di awal
@@ -1135,5 +1148,5 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown('<div class="footer-text">PSCore v1.0 · Gross Split Module (SplitLogic) · © 2025</div>',
+    st.markdown('<div class="footer-text">SplitLogic v1.0 · Gross Split Module · © 2026</div>',
                 unsafe_allow_html=True)
