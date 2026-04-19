@@ -293,8 +293,8 @@ with st.sidebar:
 
     st.markdown('<div class="sl-section-tag">Pilih Modul</div>', unsafe_allow_html=True)
     app_mode = st.radio(
-        "Skema PSC",
-        ["💰 Cost Recovery", "⚡ Gross Split"],
+        "Available Schemes:",
+        ["Cost Recovery", "Gross Split"],
         index=0,
     )
     st.markdown("---")
@@ -304,65 +304,191 @@ with st.sidebar:
 # ──────────────────────────────────────────
 # 5. COST RECOVERY MODULE
 # ───────────────────────────────────────────
-if app_mode == "💰 Cost Recovery":
+if app_mode == "Cost Recovery":
 
     # ── Sidebar inputs ──
     with st.sidebar:
         st.markdown("### ⚙️ Input Parameter")
 
         with st.sidebar.expander("📈 Production Profile", expanded=True):
-            q_initial     = st.number_input("Initial Rate (BOPD)", value=0, step=1000)
-            q_peak        = st.number_input("Peak Rate (BOPD)", value=0, step=1000)
-            plateau_years = st.number_input("Plateau Duration (Years)", value=0, step=1)
-            decline_rate  = st.number_input("Decline Rate (%)", value=0.0, step=1.0) / 100
-            prod_years    = st.number_input("Production Duration (Years)", value=0, step=1)
+            col_sy, col_ey = st.columns(2)
+            start_year = col_sy.number_input("Start Year", value=2022, step=1)
+            end_year = col_ey.number_input("End Year", value=2039, step=1)
+            
+            num_years = max(1, end_year - start_year + 1)
+            default_lifting = [0.0000, 28.4700, 215.8682, 192.2671, 172.3361, 155.3515, 140.7600, 128.1322, 117.1307, 107.4878, 98.9887, 91.4593, 84.7575, 78.7663, 73.3887, 60.1345, 56.2766, 52.7784]
+            
+            if num_years > len(default_lifting):
+                default_lifting += [0.0] * (num_years - len(default_lifting))
+            else:
+                default_lifting = default_lifting[:num_years]
+                
+            default_prices = [70.0000] * num_years
+            
+            df_prod_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Lifting (MSTB)": default_lifting,
+                "Price (USD/bbl)": default_prices
+            })
+            
+            edit_prod = st.data_editor(df_prod_init, hide_index=True, use_container_width=True, key="editor_prod")
 
-        with st.sidebar.expander("🏗️ CAPEX (Exploration & Dev)", expanded=False):
-            exp_years = st.number_input("Exploration Duration (Years)", value=0, step=1)
-            st.markdown("**Exploration Cost (MUS$)**")
-            df_exp = pd.DataFrame({"Tahun": range(1, int(exp_years)+1),
-                                   "Biaya": [0]*int(exp_years)})
-            edit_exp = st.data_editor(df_exp, hide_index=True, use_container_width=True, key="editor_exp")
-            exp_costs_input = ",".join(edit_exp["Biaya"].astype(str))
+        with st.sidebar.expander("🧾 VAT Rate", expanded=False):
+            df_vat_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "VAT Rate": [0.00] * num_years
+            })
+            edit_vat = st.data_editor(df_vat_init, hide_index=True, use_container_width=True, key="editor_vat")
 
-            dev_years = st.number_input("Development Duration (Years)", value=0, step=1)
-            st.markdown("**Development Cost (MUS$)**")
-            df_dev = pd.DataFrame({"Tahun": range(1, int(dev_years)+1),
-                                   "Biaya": [0]*int(dev_years)})
-            edit_dev = st.data_editor(df_dev, hide_index=True, use_container_width=True, key="editor_dev")
-            dev_costs_input = ",".join(edit_dev["Biaya"].astype(str))
+        with st.sidebar.expander("🏗️ CAPEX I (Drilling & Workover)", expanded=False):
+            default_tangible_1 = [0.0000, 569.4300, 261.9600]
+            if num_years > len(default_tangible_1):
+                default_tangible_1 += [0.0000] * (num_years - len(default_tangible_1))
+            else:
+                default_tangible_1 = default_tangible_1[:num_years]
 
-            tangible_pct  = st.number_input("Tangible Split (%)", value=0.0, step=1.0) / 100
-            intangible_pct = 1.0 - tangible_pct
-            st.caption(f"↳ *Implied Intangible Split:* **{intangible_pct*100:.1f}%**")
+            df_capex1_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Tangible (MU)": default_tangible_1,
+                "Association": ["Oil"] * num_years,
+                "PIS Year": [2023] * num_years,
+                "Useful Life (y)": [5] * num_years,
+                "Depreciation": ["25%"] * num_years, 
+                "VAT": ["Yes"] * num_years,
+                "Tangible After": default_tangible_1
+            })
+            edit_capex_1 = st.data_editor(df_capex1_init, hide_index=True, use_container_width=True, key="editor_capex_1")
 
-        with st.sidebar.expander("💰 Economic & PSC Terms", expanded=False):
-            oil_price           = st.number_input("Oil Price ($/bbl)", value=0.0, step=1.0)
-            opex_per_bbl        = st.number_input("Opex ($/bbl)", value=0.0, step=1.0)
-            ftp_rate            = st.number_input("FTP (%)", value=0.0, step=1.0) / 100
-            tax_rate            = st.number_input("Corporate Tax (%)", value=0.0, step=1.0) / 100
-            gov_split_after_tax = st.number_input("Gov After-Tax Split (%)", value=0.0, step=1.0) / 100
-            st.markdown("**Domestic Market Obligation (DMO)**")
-            dmo_volume_rate     = st.number_input("DMO Volume Obligation (%)", value=0.0, step=1.0) / 100
-            dmo_fee_rate        = st.number_input("DMO Fee Rate (%)", value=0.0, step=1.0) / 100
-            dmo_holiday_years   = st.number_input("DMO Holiday Duration (Years)", value=0, step=1)
-            discount_rate       = st.number_input("Discount Rate for NPV (%)", value=0.0, step=1.0) / 100
+        with st.sidebar.expander("🏗️ CAPEX II (Production Facilities)", expanded=False):
+            default_tangible_2 = [0.0000, 584.9824, 4196.1153, 2204.3920]
+            if num_years > len(default_tangible_2):
+                default_tangible_2 += [0.0000] * (num_years - len(default_tangible_2))
+            else:
+                default_tangible_2 = default_tangible_2[:num_years]
+
+            df_capex2_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Tangible (MU)": default_tangible_2,
+                "Association": ["Oil"] * num_years,
+                "PIS Year": [2023] * num_years,
+                "Useful Life (y)": [5] * num_years,
+                "Depreciation": ["25%"] * num_years, 
+                "VAT": ["Yes"] * num_years,
+                "Tangible After": default_tangible_2
+            })
+            edit_capex_2 = st.data_editor(df_capex2_init, hide_index=True, use_container_width=True, key="editor_capex_2")
+
+        with st.sidebar.expander("🏗️ CAPEX III (Intangible)", expanded=False):
+            default_intangible = [0.0000, 2322.1200, 1064.4900]
+            if num_years > len(default_intangible):
+                default_intangible += [0.0000] * (num_years - len(default_intangible))
+            else:
+                default_intangible = default_intangible[:num_years]
+
+            df_capex3_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Intangible (MU)": default_intangible,
+                "VAT": ["Yes"] * num_years,
+                "Intangible After": default_intangible
+            })
+            edit_capex_3 = st.data_editor(df_capex3_init, hide_index=True, use_container_width=True, key="editor_capex_3")
+
+        with st.sidebar.expander("🛠️ OPEX I (WIWS)", expanded=False):
+            default_opex_1 = [0.0000] * num_years
+            df_opex1_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Opex (MUSD)": default_opex_1,
+                "VAT": ["Yes"] * num_years,
+                "Opex After Tax": default_opex_1
+            })
+            edit_opex_1 = st.data_editor(df_opex1_init, hide_index=True, use_container_width=True, key="editor_opex_1")
+
+        with st.sidebar.expander("🛠️ OPEX II (Operation & Maintenance)", expanded=False):
+            default_opex_2 = [0.0000] * num_years
+            df_opex2_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Opex (MUSD)": default_opex_2,
+                "VAT": ["Yes"] * num_years,
+                "Opex After Tax": default_opex_2
+            })
+            edit_opex_2 = st.data_editor(df_opex2_init, hide_index=True, use_container_width=True, key="editor_opex_2")
+
+        with st.sidebar.expander("🛠️ OPEX III (Electricity)", expanded=False):
+            default_opex_3 = [0.0000, 2037.7363, 8625.7219, 6863.8197, 4119.1711, 4024.5949, 3943.3438, 3873.0270, 3811.7665, 3758.0713, 3710.7449, 3668.8183, 3631.5001, 3598.1389, 2982.3002, 2908.4958, 2887.0137, 2867.5344]
+            if num_years > len(default_opex_3):
+                default_opex_3 += [0.0000] * (num_years - len(default_opex_3))
+            else:
+                default_opex_3 = default_opex_3[:num_years]
+                
+            df_opex3_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Opex (MUSD)": default_opex_3,
+                "VAT": ["Yes"] * num_years,
+                "Opex After Tax": default_opex_3
+            })
+            edit_opex_3 = st.data_editor(df_opex3_init, hide_index=True, use_container_width=True, key="editor_opex_3")
+
+        with st.sidebar.expander("🛠️ OPEX IV (ASR)", expanded=False):
+            default_opex_4 = [0.0000, 0.0000] + [21.9516] * max(0, num_years - 2)
+            if num_years > len(default_opex_4):
+                default_opex_4 += [21.9516] * (num_years - len(default_opex_4))
+            else:
+                default_opex_4 = default_opex_4[:num_years]
+                
+            df_opex4_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Opex (MUSD)": default_opex_4,
+                "VAT": ["Yes"] * num_years,
+                "Opex After Tax": default_opex_4
+            })
+            edit_opex_4 = st.data_editor(df_opex4_init, hide_index=True, use_container_width=True, key="editor_opex_4")
+
+        with st.sidebar.expander("🛠️ OPEX V (LBT)", expanded=False):
+            default_opex_5 = [0.0000] * num_years
+            df_opex5_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Opex (MUSD)": default_opex_5,
+                "VAT": ["Yes"] * num_years,
+                "Opex After Tax": default_opex_5
+            })
+            edit_opex_5 = st.data_editor(df_opex5_init, hide_index=True, use_container_width=True, key="editor_opex_5")
+
+        with st.sidebar.expander("🛠️ OPEX VI (Carbon Tax)", expanded=False):
+            default_opex_6 = [0.0000] * num_years
+            df_opex6_init = pd.DataFrame({
+                "Year": range(start_year, end_year + 1),
+                "Opex (MUSD)": default_opex_6,
+                "VAT": ["Yes"] * num_years,
+                "Opex After Tax": default_opex_6
+            })
+            edit_opex_6 = st.data_editor(df_opex6_init, hide_index=True, use_container_width=True, key="editor_opex_6")
+
+        with st.sidebar.expander("💰 Fiscal & Split Terms", expanded=True):
+            tax_rate             = st.number_input("Cont. Eff. Tax Rate (%)", value=37.00, step=1.0) / 100
+            dmo_volume_rate      = st.number_input("DMO Volume (%)", value=25.00, step=1.0) / 100
+            dmo_fee_rate         = st.number_input("DMO Fee (%)", value=25.00, step=1.0) / 100
+            dmo_holiday_years    = st.number_input("DMO Holiday Duration (years)", value=5, step=1)
+            discount_rate        = st.number_input("Discount Factor (%)", value=10.00, step=1.0) / 100
+            discount_factor_year = st.number_input("Discount Factor Year", value=2023, step=1)
+            ftp_rate             = st.number_input("FTP (%)", value=20.00, step=1.0) / 100
+            
+            st.markdown("---")
+            st.markdown("**Split Breakdown (%)**")
+            gov_split_after_tax  = st.number_input("Gov. After Tax Split (%)", value=85.00, step=1.0) / 100
 
             ctr_split_after_tax  = 1 - gov_split_after_tax
             ctr_split_before_tax = ctr_split_after_tax / (1 - tax_rate) if tax_rate != 1 else 0
             gov_split_before_tax = 1 - ctr_split_before_tax
+            
             st.info(f"""
-            **📊 Implied Split Breakdown:**
-            - Ctr After-Tax: **{ctr_split_after_tax*100:.2f}%**
-            - Gov Before-Tax: **{gov_split_before_tax*100:.2f}%**
-            - Ctr Before-Tax: **{ctr_split_before_tax*100:.2f}%**
+            **📊 Implied Split Information:**
+            - **After Tax Split**: Gov = {gov_split_after_tax*100:.4f}% | Ctr = {ctr_split_after_tax*100:.4f}%
+            - **Before Tax Split**: Gov = {gov_split_before_tax*100:.4f}% | Ctr = {ctr_split_before_tax*100:.4f}%
             """)
 
-        with st.sidebar.expander("📉 Depreciation Rules", expanded=False):
-            dep_group = st.selectbox("Tangible Depreciation Group",
-                                     ["Group 1 (50%)", "Group 2 (25%)", "Group 3 (12.5%)"])
-            # dep_years cannot be 0, keeping default at 1
-            dep_years = st.number_input("Target Depreciation (Years)", value=1, min_value=1, step=1)
+        with st.sidebar.expander("⚙️ Method Selection", expanded=True):
+            ftp_sharing_method = st.selectbox("FTP Sharing Method", ["Shared", "Not Shared"])
+            depreciation_method = st.selectbox("Depreciation Method", ["Straight Line", "Declining Balance", "Double Declining Balance", "Unit of Production", "Sum of the Year"])
 
     # ── Live Oil Price ──
     @st.cache_data(ttl=3600)
@@ -386,74 +512,156 @@ if app_mode == "💰 Cost Recovery":
 
     # ── Core Model ──
     def run_psc_model(override_oil_price=None, capex_mult=1.0):
-        current_oil_price = override_oil_price if override_oil_price is not None else oil_price
 
-        try:
-            exploration_costs_list = [(float(x.strip()) * capex_mult) for x in exp_costs_input.split(',')]
-        except ValueError:
-            exploration_costs_list = [0]
-        try:
-            development_costs_list = [(float(x.strip()) * capex_mult) for x in dev_costs_input.split(',')]
-        except ValueError:
-            development_costs_list = [0]
+        total_years = len(edit_prod)
+        years_array = edit_prod["Year"].values
 
-        exploration_costs_list = (exploration_costs_list + [0]*int(exp_years))[:int(exp_years)]
-        development_costs_list = (development_costs_list + [0]*int(dev_years))[:int(dev_years)]
+        prod_mstb = edit_prod["Lifting (MSTB)"].values
+        prod_bopd = (prod_mstb * 1000) / 365 
+        non_zero_indices = np.where(prod_mstb > 0)[0]
+        prod_start_year = non_zero_indices[0] if len(non_zero_indices) > 0 else 0
 
-        actual_prod_years = int(prod_years) + 1
-        prod_start_year   = int(exp_years) + int(dev_years)
-        total_years       = prod_start_year + actual_prod_years
-        years_array       = np.arange(1, total_years + 1)
-
-        exp_costs  = np.zeros(total_years)
-        exp_costs[0:int(exp_years)] = exploration_costs_list
-        dev_costs  = np.zeros(total_years)
-        dev_costs[int(exp_years):prod_start_year] = development_costs_list
-        dev_tangible   = dev_costs * tangible_pct
-        dev_intangible = dev_costs * intangible_pct
-
-        prod_bopd = np.zeros(total_years)
-        if actual_prod_years > 0:
-            prod_bopd[prod_start_year] = q_initial
-            for i in range(1, min(int(plateau_years)+1, actual_prod_years)):
-                if prod_start_year + i < total_years:
-                    prod_bopd[prod_start_year + i] = q_peak
-            for i in range(int(plateau_years)+1, actual_prod_years):
-                if prod_start_year + i < total_years:
-                    prod_bopd[prod_start_year+i] = prod_bopd[prod_start_year+i-1] * (1-decline_rate)
-
-        prod_mstb = (prod_bopd * 365) / 1000
-
-        rate_map = {"Group 1 (50%)": 0.50, "Group 2 (25%)": 0.25, "Group 3 (12.5%)": 0.125}
-        depreciation_rate = rate_map[dep_group]
-        dep_sched = []
-        bal = 1.0
-        for i in range(int(dep_years)):
-            if i == int(dep_years) - 1:
-                dep_sched.append(bal)
-            else:
-                chg = bal * depreciation_rate
-                dep_sched.append(chg)
-                bal -= chg
-
-        total_tangible_pool = np.sum(dev_tangible)
+        dev_tangible = np.zeros(total_years)
+        dev_intangible = np.zeros(total_years)
+        opex = np.zeros(total_years)
+        
         depreciation = np.zeros(total_years)
-        for i, pct in enumerate(dep_sched):
-            ty = prod_start_year + i
-            if ty < total_years:
-                depreciation[ty] = total_tangible_pool * pct
+        dep_capex1 = np.zeros(total_years)
+        dep_capex2 = np.zeros(total_years)
 
-        finding_amort   = np.zeros(total_years)
-        intangible_amort = np.zeros(total_years)
-        if prod_start_year < total_years:
-            finding_amort[prod_start_year]    = np.sum(exp_costs)
-            intangible_amort[prod_start_year] = np.sum(dev_intangible)
+        def calc_depreciation(asset_value, start_idx, life, method, prod_profile=None):
+            arr = np.zeros(total_years)
+            if asset_value <= 0 or start_idx >= total_years: return arr
+            book_val = asset_value
+            life = int(life) if life > 0 else 1
+            
+            if method == "Straight Line":
+                rate = 1.0 / life
+                dep_amount = asset_value * rate
+                for i in range(life):
+                    y = start_idx + i
+                    if y >= total_years: break
+                    actual_dep = min(dep_amount, book_val)
+                    arr[y] = actual_dep
+                    book_val -= actual_dep
+                    
+            elif method == "Declining Balance":
+                rate = 1.0 / life
+                for i in range(life):
+                    y = start_idx + i
+                    if y >= total_years: break
+                    if i == life - 1:
+                        arr[y] = book_val
+                        book_val = 0
+                    else:
+                        arr[y] = book_val * rate
+                        book_val -= arr[y]
+                        
+            elif method == "Double Declining Balance":
+                rate = 2.0 / life
+                for i in range(life):
+                    y = start_idx + i
+                    if y >= total_years: break
+                    if i == life - 1:
+                        arr[y] = book_val
+                        book_val = 0
+                    else:
+                        arr[y] = book_val * rate
+                        book_val -= arr[y]
+            
+            elif method == "Unit of Production":
+                if prod_profile is not None:
+                    remaining_prod = np.sum(prod_profile[start_idx:])
+                    if remaining_prod > 0:
+                        for y in range(start_idx, total_years):
+                            dep_amount = asset_value * (prod_profile[y] / remaining_prod)
+                            actual_dep = min(dep_amount, book_val)
+                            arr[y] = actual_dep
+                            book_val -= actual_dep
+                            
+            elif method in ["Sum of the Year", "Sum of The Year"]:
+                syd = life * (life + 1) / 2.0
+                for i in range(life):
+                    y = start_idx + i
+                    if y >= total_years: break
+                    arr[y] = asset_value * (life - i) / syd
+                    
+            return arr
 
-        gross_revenue = prod_mstb * current_oil_price
-        opex          = prod_mstb * opex_per_bbl
+        for i in range(total_years):
+            vat_rate = edit_vat["VAT Rate"].iloc[i]
+            
+            # CAPEX I (Tangible)
+            t1_val = edit_capex_1["Tangible (MU)"].iloc[i] * capex_mult
+            is_vat1 = str(edit_capex_1["VAT"].iloc[i]).strip().lower() in ['yes', 'true', 'y', '1']
+            t1_after = t1_val * (1 + vat_rate) if is_vat1 else t1_val
+            if t1_after > 0:
+                pis_year_1 = edit_capex_1["PIS Year"].iloc[i]
+                pis_idx_1 = np.where(years_array == pis_year_1)[0][0] if pis_year_1 in years_array else max(i, prod_start_year)
+                pis_idx_1 = max(pis_idx_1, prod_start_year)
+                life_1 = edit_capex_1["Useful Life (y)"].iloc[i]
+                
+                d1 = calc_depreciation(t1_after, pis_idx_1, life_1, depreciation_method, prod_profile=prod_mstb)
+                dep_capex1 += d1
+                depreciation += d1
+            
+            # CAPEX II (Tangible)
+            t2_val = edit_capex_2["Tangible (MU)"].iloc[i] * capex_mult
+            is_vat2 = str(edit_capex_2["VAT"].iloc[i]).strip().lower() in ['yes', 'true', 'y', '1']
+            t2_after = t2_val * (1 + vat_rate) if is_vat2 else t2_val
+            if t2_after > 0:
+                pis_year_2 = edit_capex_2["PIS Year"].iloc[i]
+                pis_idx_2 = np.where(years_array == pis_year_2)[0][0] if pis_year_2 in years_array else max(i, prod_start_year)
+                pis_idx_2 = max(pis_idx_2, prod_start_year)
+                life_2 = edit_capex_2["Useful Life (y)"].iloc[i]
+                
+                d2 = calc_depreciation(t2_after, pis_idx_2, life_2, depreciation_method, prod_profile=prod_mstb)
+                dep_capex2 += d2
+                depreciation += d2
+            
+            # Combine Tangible CAPEX
+            dev_tangible[i] = t1_after + t2_after
+            
+            # CAPEX III (Intangible)
+            int_val = edit_capex_3["Intangible (MU)"].iloc[i] * capex_mult
+            is_vat3 = str(edit_capex_3["VAT"].iloc[i]).strip().lower() in ['yes', 'true', 'y', '1']
+            int_after = int_val * (1 + vat_rate) if is_vat3 else int_val
+            dev_intangible[i] = int_after
+
+            # OPEX Calculation
+            def get_opex_val(df_opex, idx):
+                val = df_opex["Opex (MUSD)"].iloc[idx]
+                is_vat_op = str(df_opex["VAT"].iloc[idx]).strip().lower() in ['yes', 'true', 'y', '1']
+                return val * (1 + vat_rate) if is_vat_op else val
+
+            op1 = get_opex_val(edit_opex_1, i)
+            op2 = get_opex_val(edit_opex_2, i)
+            op3 = get_opex_val(edit_opex_3, i)
+            op4 = get_opex_val(edit_opex_4, i)
+            op5 = get_opex_val(edit_opex_5, i)
+            op6 = get_opex_val(edit_opex_6, i)
+            opex[i] = op1 + op2 + op3 + op4 + op5 + op6
+
+        exp_costs = np.zeros(total_years)
+
+        intangible_amort = np.copy(dev_intangible)
+        finding_amort = np.zeros(total_years) 
+
+        if override_oil_price is not None:
+            oil_price_arr = np.full(total_years, float(override_oil_price))
+        else:
+            oil_price_arr = edit_prod["Price (USD/bbl)"].values
+
+        gross_revenue = prod_mstb * oil_price_arr
         ftp           = gross_revenue * ftp_rate
-        gov_ftp       = ftp * gov_split_before_tax
-        ctr_ftp       = ftp * ctr_split_before_tax
+        
+        if ftp_sharing_method == "Shared":
+            gov_ftp = ftp * gov_split_before_tax
+            ctr_ftp = ftp * ctr_split_before_tax
+        else:
+            gov_ftp = ftp
+            ctr_ftp = np.zeros(total_years)
+            
         gr_minus_ftp  = gross_revenue - ftp
         total_costs_amort = finding_amort + intangible_amort + depreciation + opex
 
@@ -463,12 +671,16 @@ if app_mode == "💰 Cost Recovery":
         cur_unrk = 0
 
         for i in range(total_years):
+            pool = cur_unrk + total_costs_amort[i]
             if prod_mstb[i] > 0:
-                pool = cur_unrk + total_costs_amort[i]
                 recovered[i] = min(gr_minus_ftp[i], pool)
                 cur_unrk = pool - recovered[i]
-                unrecovered[i] = cur_unrk
                 ets[i] = gr_minus_ftp[i] - recovered[i]
+            else:
+                recovered[i] = 0
+                cur_unrk = pool
+                ets[i] = 0
+            unrecovered[i] = cur_unrk
 
         gov_equity = ets * gov_split_before_tax
         ctr_equity = ets * ctr_split_before_tax
@@ -478,9 +690,7 @@ if app_mode == "💰 Cost Recovery":
         for i in range(total_years):
             if prod_mstb[i] > 0:
                 prod_year = i - prod_start_year + 1
-                if prod_year == 1:
-                    pass
-                elif prod_year <= int(dmo_holiday_years):
+                if prod_year <= int(dmo_holiday_years):
                     dmo_gross[i] = gross_revenue[i] * ctr_split_before_tax * dmo_volume_rate
                     dmo_fee[i]   = dmo_gross[i]
                 else:
@@ -498,16 +708,16 @@ if app_mode == "💰 Cost Recovery":
         gov_take = gov_ftp + gov_equity + dmo_penalty + tax_paid
 
         return dict(
-            years=years_array, prod_bopd=prod_bopd, prod_mstb=prod_mstb,
+            years=years_array, prod_bopd=prod_bopd, prod_mstb=prod_mstb, oil_price_arr=oil_price_arr,
             gross_revenue=gross_revenue, recovered=recovered, unrecovered=unrecovered,
-            net_cf=net_cf, gov_take=gov_take, tax_paid=tax_paid,
+            net_cf=net_cf, gov_take=gov_take, tax_paid=tax_paid, taxable_income=taxable_income,
             total_costs_amort=total_costs_amort, cash_in=cash_in, cash_out=cash_out,
             exp_costs=exp_costs, dev_tangible=dev_tangible, dev_intangible=dev_intangible,
             ftp=ftp, gov_ftp=gov_ftp, ctr_ftp=ctr_ftp,
             gov_equity=gov_equity, ctr_equity=ctr_equity,
             dmo_penalty=dmo_penalty, finding_amort=finding_amort,
-            depreciation=depreciation, intangible_amort=intangible_amort,
-            opex=opex, gr_minus_ftp=gr_minus_ftp, ets=ets,
+            depreciation=depreciation, dep_capex1=dep_capex1, dep_capex2=dep_capex2, 
+            intangible_amort=intangible_amort, opex=opex, gr_minus_ftp=gr_minus_ftp, ets=ets,
             net_ctr_share=net_ctr_share, dmo_gross=dmo_gross, dmo_fee=dmo_fee,
             prod_start_year=prod_start_year, total_years=total_years,
         )
@@ -520,7 +730,12 @@ if app_mode == "💰 Cost Recovery":
     gov_take_pct        = total_gov_take / total_gross_revenue if total_gross_revenue > 0 else 0
     total_ctr_take_at   = np.sum(results['net_ctr_share']) - np.sum(results['tax_paid'])
 
-    npv_base = npf.npv(discount_rate, results['net_cf']) / (1 + discount_rate)
+    npv_base = 0
+    for i in range(results['total_years']):
+        t = results['years'][i] - discount_factor_year
+        df = 1.0 / ((1 + discount_rate) ** t)
+        npv_base += results['net_cf'][i] * df
+
     try:
         irr_base = npf.irr(results['net_cf'])
     except Exception:
@@ -536,9 +751,41 @@ if app_mode == "💰 Cost Recovery":
     bep_price = 0
     for test_p in range(10, 200):
         tr = run_psc_model(override_oil_price=test_p)
-        if (npf.npv(discount_rate, tr['net_cf']) / (1 + discount_rate)) > 0:
+        test_npv = 0
+        for i in range(tr['total_years']):
+            t = tr['years'][i] - discount_factor_year
+            df = 1.0 / ((1 + discount_rate) ** t)
+            test_npv += tr['net_cf'][i] * df
+            
+        if test_npv > 0:
             bep_price = test_p
             break
+
+    # ── Calculate Values for Summary ──
+    sum_prod_mstb = np.sum(results['prod_mstb'])
+    avg_oil_price = total_gross_revenue / sum_prod_mstb if sum_prod_mstb > 0 else 0
+    
+    sum_ftp_gov = np.sum(results['gov_ftp'])
+    sum_ftp_ctr = np.sum(results['ctr_ftp'])
+    sum_ftp_total = np.sum(results['ftp'])
+    
+    sum_ets_gov = np.sum(results['gov_equity'])
+    sum_ets_ctr = np.sum(results['ctr_equity'])
+    sum_ets_total = np.sum(results['ets'])
+    
+    sum_sunk_cost = np.sum(results['exp_costs'])
+    sum_tangible = np.sum(results['dev_tangible'])
+    sum_intangible = np.sum(results['dev_intangible'])
+    sum_opex = np.sum(results['opex'])
+    
+    sum_cost_recovery = np.sum(results['recovered'])
+    pct_cost_recovery = sum_cost_recovery / total_gross_revenue if total_gross_revenue > 0 else 0
+    
+    sum_dmo_penalty = np.sum(results['dmo_penalty'])
+    sum_tax = np.sum(results['tax_paid'])
+    
+    pct_gov_share = total_gov_take / total_gross_revenue if total_gross_revenue > 0 else 0
+    pct_ctr_share = total_ctr_take_at / total_gross_revenue if total_gross_revenue > 0 else 0
 
     # ── HEADER ──
     col_logo, col_title = st.columns([1, 10])
@@ -558,7 +805,7 @@ if app_mode == "💰 Cost Recovery":
     st.markdown("---")
 
     # ── Tabs ──
-    tab1, tab2, tab3, tab_about = st.tabs(["📊 Dashboard", "📑 Economic Tables", "📈 Sensitivity", "ℹ️ About"])
+    tab1, tab_summary, tab2, tab_about = st.tabs(["📊 Dashboard", "📑 Executive Summary", "🗂️ Economic Tables", "ℹ️ About"])
 
     # ── TAB 1: Dashboard ──
     with tab1:
@@ -566,43 +813,21 @@ if app_mode == "💰 Cost Recovery":
             st.markdown("##### 🌍 Live Global Oil Market (Reference Only)")
             p1, p2, _, _ = st.columns(4)
             p1.metric("Brent Crude (BZ=F)",
-                      f"${live_prices['brent']['price']:.2f}/bbl",
-                      f"{live_prices['brent']['change']:.2f}%")
+                      f"${live_prices['brent']['price']:.4f}/bbl",
+                      f"{live_prices['brent']['change']:.4f}%")
             p2.metric("WTI Crude (CL=F)",
-                      f"${live_prices['wti']['price']:.2f}/bbl",
-                      f"{live_prices['wti']['change']:.2f}%")
+                      f"${live_prices['wti']['price']:.4f}/bbl",
+                      f"{live_prices['wti']['change']:.4f}%")
             st.markdown("---")
 
         st.markdown("### 🏆 Key Economic Indicators")
         c1,c2,c3,c4,c5,c6 = st.columns(6)
-        c1.metric("Reserve (MMBO)",              f"{np.sum(results['prod_mstb'])/1000:.2f}")
-        c2.metric(f"NPV @{discount_rate*100:.0f}% (MUS$)", f"{npv_base:,.0f}")
-        c3.metric("IRR Full Cycle",              f"{irr_base:.2%}" if not np.isnan(irr_base) else "-")
-        c4.metric("Gov Take (%)",                f"{gov_take_pct:.2%}")
+        c1.metric("Reserve (MMBO)",              f"{sum_prod_mstb/1000:.4f}")
+        c2.metric(f"NPV @{discount_rate*100:.0f}% (MUS$)", f"{npv_base:,.4f}")
+        c3.metric("IRR Full Cycle",              f"{irr_base:.4%}" if not np.isnan(irr_base) else "-")
+        c4.metric("Gov Take (%)",                f"{gov_take_pct:.4%}")
         c5.metric("Payback Period",              payback_year)
-        c6.metric("Break-Even Price",            f"${bep_price}/bbl")
-        st.markdown("---")
-
-        # Gantt
-        st.markdown("### 📅 Project Phase Timeline")
-        df_tl = pd.DataFrame([
-            dict(Task="Exploration Phase", Start=1,                        Finish=int(exp_years),                    Color="#E18D11"),
-            dict(Task="Development Phase", Start=int(exp_years)+1,         Finish=int(exp_years)+int(dev_years),      Color="#17BECF"),
-            dict(Task="Production Phase",  Start=int(exp_years)+int(dev_years)+1, Finish=results['total_years'],   Color="#2CA02C"),
-        ])
-        fig_gantt = go.Figure()
-        for _, row in df_tl.iterrows():
-            if row['Finish'] >= row['Start']:
-                fig_gantt.add_trace(go.Bar(
-                    x=[row['Finish']-row['Start']+1], y=[row['Task']],
-                    base=[row['Start']-1], orientation='h',
-                    marker_color=row['Color'], name=row['Task'],
-                    text=f"Year {row['Start']} to {row['Finish']}",
-                    textposition="inside",
-                ))
-        fig_gantt.update_layout(barmode='stack', xaxis_title="Project Year",
-                                showlegend=False, **plotly_layout())
-        st.plotly_chart(fig_gantt, use_container_width=True)
+        c6.metric("Break-Even Price",            f"${bep_price:.4f}/bbl")
         st.markdown("---")
 
         cc1, cc2 = st.columns(2)
@@ -662,90 +887,141 @@ if app_mode == "💰 Cost Recovery":
             fig_pie.update_layout(**plotly_layout("Proporsi Pembagian Total Pendapatan"))
             st.plotly_chart(fig_pie, use_container_width=True)
 
+    # ── TAB Summary ──
+    with tab_summary:
+        st.subheader("📑 Executive Summary Report")
+        
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            st.markdown("#### 🛢️ Production Profile")
+            st.markdown(f"""
+            | Indicator | Unit | Value |
+            | :--- | :--- | :--- |
+            | **Produksi Minyak** | MSTB | {sum_prod_mstb:,.4f} |
+            | **Average Oil Price** | USD/bbl | {avg_oil_price:,.4f} |
+            | **Gross Revenue** | MUSD | {total_gross_revenue:,.4f} |
+            """)
+            
+            st.markdown("#### ✂️ Split")
+            st.markdown(f"""
+            | Indicator | Unit | Gov. Share | Ctr. Share | Total |
+            | :--- | :--- | :--- | :--- | :--- |
+            | **FTP** | MUSD | {sum_ftp_gov:,.4f} | {sum_ftp_ctr:,.4f} | {sum_ftp_total:,.4f} |
+            | **ETS** | MUSD | {sum_ets_gov:,.4f} | {sum_ets_ctr:,.4f} | {sum_ets_total:,.4f} |
+            """)
+
+        with col_s2:
+            st.markdown("#### 💰 Investment & OPEX")
+            st.markdown(f"""
+            | Indicator | Unit | Value |
+            | :--- | :--- | :--- |
+            | **Sunk Cost** | MUSD | {sum_sunk_cost:,.4f} |
+            | **Tangible** | MUSD | {sum_tangible:,.4f} |
+            | **Intangible** | MUSD | {sum_intangible:,.4f} |
+            | **Total OPEX** | MUSD | {sum_opex:,.4f} |
+            """)
+            
+            st.markdown("#### 💵 Cost Recovery")
+            st.markdown(f"""
+            | Indicator | Unit | Value |
+            | :--- | :--- | :--- |
+            | **Cost Recovery** | MUSD | {sum_cost_recovery:,.4f} |
+            | **% Cost Recovery** | % | {pct_cost_recovery:,.4%} |
+            """)
+
+        st.markdown("---")
+        col_s3, col_s4 = st.columns(2)
+        
+        with col_s3:
+            st.markdown("#### 🏛️ Government Profitability")
+            st.markdown(f"""
+            | Indicator | Unit | Value |
+            | :--- | :--- | :--- |
+            | **Gov. FTP** | MUSD | {sum_ftp_gov:,.4f} |
+            | **Gov. ETS** | MUSD | {sum_ets_gov:,.4f} |
+            | **Net DMO** | MUSD | {sum_dmo_penalty:,.4f} |
+            | **Tax** | MUSD | {sum_tax:,.4f} |
+            | **Gov Share** | MUSD | {total_gov_take:,.4f} |
+            | **% Gov Share** | % | {pct_gov_share:,.4%} |
+            """)
+
+        with col_s4:
+            st.markdown("#### 👷 Contractor Profitability")
+            st.markdown(f"""
+            | Indicator | Unit | Value |
+            | :--- | :--- | :--- |
+            | **Ctr Share** | MUSD | {total_ctr_take_at:,.4f} |
+            | **% Ctr Share** | % | {pct_ctr_share:,.4%} |
+            | **NPV PF** | MUSD | {npv_base:,.4f} |
+            | **IRR FC** | % | {irr_base:,.4%} |
+            """)
+
     # ── TAB 2: Tables ──
     with tab2:
         st.subheader("📋 Annual Economic Summary")
-        total_yrs = results['total_years']
-        df_out = pd.DataFrame({
+
+        st.markdown("##### 🛢️ Group 1: Production & Revenue")
+        df_group1 = pd.DataFrame({
             "Year":            results['years'],
-            "Prod (BOPD)":     np.round(results['prod_bopd'], 0),
-            "Prod (MSTB)":     np.round(results['prod_mstb'], 2),
-            "Gross Rev (MUS$)":np.round(results['gross_revenue'], 2),
-            "FTP (MUS$)":      np.round(results['ftp'], 2),
-            "Cost Rec (MUS$)": np.round(results['recovered'], 2),
-            "Unrecov (MUS$)":  np.round(results['unrecovered'], 2),
-            "ETS (MUS$)":      np.round(results['ets'], 2),
-            "Gov Equity":      np.round(results['gov_equity'], 2),
-            "Ctr Equity":      np.round(results['ctr_equity'], 2),
-            "DMO Penalty":     np.round(results['dmo_penalty'], 2),
-            "Net Ctr (MUS$)":  np.round(results['net_ctr_share'], 2),
-            "Tax (MUS$)":      np.round(results['tax_paid'], 2),
-            "Net CF (MUS$)":   np.round(results['net_cf'], 2),
-            "Cum CF (MUS$)":   np.round(cumulative_cf, 2),
+            "Lifting (MSTB)":  results['prod_mstb'],
+            "Price (USD/bbl)": results['oil_price_arr'],
+            "GR (MUSD)":       results['gross_revenue'],
+            "FTP (MUSD)":      results['ftp'],
+            "GR-FTP (MUSD)":   results['gr_minus_ftp'],
         })
-        st.dataframe(df_out, use_container_width=True)
+        st.dataframe(df_group1.style.format({c: "{:,.4f}" for c in df_group1.columns if c != "Year"}), use_container_width=True)
 
-        st.markdown("---")
-        st.subheader("📊 Project Totals")
-        totals = {
-            "Total Gross Revenue (MUS$)":       f"{total_gross_revenue:,.2f}",
-            "Total Cost Recovery (MUS$)":        f"{np.sum(results['recovered']):,.2f}",
-            "Total Government Take (MUS$)":      f"{total_gov_take:,.2f}",
-            "Total Contractor Take AT (MUS$)":   f"{total_ctr_take_at:,.2f}",
-            "Government Take (%)":               f"{gov_take_pct:.2%}",
-            f"NPV @{discount_rate*100:.0f}% (MUS$)": f"{npv_base:,.2f}",
-            "IRR":                               f"{irr_base:.2%}" if not np.isnan(irr_base) else "-",
-        }
-        for k, v in totals.items():
-            c_k, c_v = st.columns([3, 2])
-            c_k.write(k)
-            c_v.write(f"**{v}**")
+        st.markdown("##### 💵 Group 2: Cost Recovery")
+        df_group2 = pd.DataFrame({
+            "Year":                         results['years'],
+            "Depreciation CAPEX I (MUSD)":  results['dep_capex1'],
+            "Depreciation CAPEX II (MUSD)": results['dep_capex2'],
+            "CAPEX III Intangible (MUSD)":  results['intangible_amort'],
+            "Total OPEX (MUSD)":            results['opex'],
+            "Total Cost (MUSD)":            results['total_costs_amort'],
+            "Recovered (MUSD)":             results['recovered'],
+            "Unrecovered (MUSD)":           results['unrecovered'],
+        })
+        st.dataframe(df_group2.style.format({c: "{:,.4f}" for c in df_group2.columns if c != "Year"}), use_container_width=True)
 
-    # ── TAB 3: Sensitivity ──
-    with tab3:
-        st.subheader("📈 Oil Price Sensitivity")
-        price_range = range(20, 151, 5)
-        sens_npv  = []
-        sens_irr  = []
-        for p in price_range:
-            r = run_psc_model(override_oil_price=p)
-            n = npf.npv(discount_rate, r['net_cf']) / (1 + discount_rate)
-            sens_npv.append(n)
-            try:
-                sens_irr.append(npf.irr(r['net_cf']))
-            except Exception:
-                sens_irr.append(float('nan'))
+        st.markdown("##### ⚖️ Group 3: Equity Split")
+        df_group3 = pd.DataFrame({
+            "Year":              results['years'],
+            "ETS (MUSD)":        results['ets'],
+            "Gov Equity (MUSD)": results['gov_equity'],
+            "Ctr Equity (MUSD)": results['ctr_equity'],
+        })
+        st.dataframe(df_group3.style.format({c: "{:,.4f}" for c in df_group3.columns if c != "Year"}), use_container_width=True)
 
-        fig_sens = make_subplots(specs=[[{"secondary_y": True}]])
-        fig_sens.add_trace(go.Scatter(x=list(price_range), y=sens_npv,
-                                      name="NPV (MUS$)", line=dict(color=AMBER, width=3)),
-                           secondary_y=False)
-        fig_sens.add_trace(go.Scatter(x=list(price_range), y=[v*100 if not np.isnan(v) else None for v in sens_irr],
-                                      name="IRR (%)", line=dict(color="#5DA897", width=2, dash="dot")),
-                           secondary_y=True)
-        fig_sens.add_hline(y=0, line_dash="dash", line_color=MUTED)
-        fig_sens.update_layout(**plotly_layout("NPV & IRR vs Oil Price", height=420))
-        fig_sens.update_yaxes(title_text="NPV (MUS$)", secondary_y=False)
-        fig_sens.update_yaxes(title_text="IRR (%)", secondary_y=True)
-        st.plotly_chart(fig_sens, use_container_width=True)
+        st.markdown("##### 🤝 Group 4: First Tranche Petroleum (FTP)")
+        df_group4 = pd.DataFrame({
+            "Year":           results['years'],
+            "FTP (MUSD)":     results['ftp'],
+            "Gov FTP (MUSD)": results['gov_ftp'],
+            "Ctr FTP (MUSD)": results['ctr_ftp'],
+        })
+        st.dataframe(df_group4.style.format({c: "{:,.4f}" for c in df_group4.columns if c != "Year"}), use_container_width=True)
 
-        st.subheader("📉 CAPEX Sensitivity")
-        capex_mults = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]
-        capex_npvs  = []
-        for m in capex_mults:
-            r = run_psc_model(capex_mult=m)
-            capex_npvs.append(npf.npv(discount_rate, r['net_cf']) / (1 + discount_rate))
+        st.markdown("##### 🏛️ Group 5: DMO & Taxes")
+        df_group5 = pd.DataFrame({
+            "Year":                  results['years'],
+            "Ctr FTP (MUSD)":        results['ctr_ftp'],
+            "Ctr ETS (MUSD)":        results['ctr_equity'],
+            "DMO Gross (MUSD)":      results['dmo_gross'],
+            "DMO Fee (MUSD)":        results['dmo_fee'],
+            "Taxable Income (MUSD)": results['taxable_income'],
+            "Tax Paid (MUSD)":       results['tax_paid'],
+        })
+        st.dataframe(df_group5.style.format({c: "{:,.4f}" for c in df_group5.columns if c != "Year"}), use_container_width=True)
 
-        fig_capex = go.Figure(go.Bar(
-            x=[f"{int(m*100)}%" for m in capex_mults],
-            y=capex_npvs,
-            marker_color=[AMBER if v >= 0 else "#C05050" for v in capex_npvs],
-            text=[f"{v:,.0f}" for v in capex_npvs],
-            textposition="outside",
-        ))
-        fig_capex.update_layout(**plotly_layout("NPV vs CAPEX Multiplier", height=380),
-                                 yaxis_title="NPV (MUS$)")
-        st.plotly_chart(fig_capex, use_container_width=True)
+        st.markdown("##### 💰 Group 6: Cash Flow")
+        df_group6 = pd.DataFrame({
+            "Year":            results['years'],
+            "Cash In (MUSD)":  results['cash_in'],
+            "Cash Out (MUSD)": results['cash_out'],
+            "Net CF (MUSD)":   results['net_cf'],
+        })
+        st.dataframe(df_group6.style.format({c: "{:,.4f}" for c in df_group6.columns if c != "Year"}), use_container_width=True)
 
     # ── TAB About ──
     with tab_about:
@@ -761,23 +1037,23 @@ if app_mode == "💰 Cost Recovery":
           <hr/>
           <h4>Fitur Utama</h4>
           <ul>
-            <li>Production profile modeling dengan decline curve</li>
-            <li>CAPEX exploration &amp; development dengan split tangible/intangible</li>
-            <li>FTP, Cost Recovery, Equity Split, DMO, dan Pajak</li>
+            <li>Production profile modeling dengan tabel lifting dan harga interaktif</li>
+            <li>CAPEX (Tangible I & II, Intangible) & OPEX (I-VI) interaktif dengan perhitungan VAT dinamis</li>
+            <li>Depreciation terintegrasi PIS Year (Straight Line, Declining Balance, Unit of Production, dll)</li>
+            <li>FTP (Shared/Not Shared), Cost Recovery, Equity Split, DMO, dan Pajak</li>
             <li>Metrik NPV, IRR, Payback Period, Break-Even Price</li>
-            <li>Sensitivity analysis terhadap harga minyak dan CAPEX</li>
-            <li>Live Brent &amp; WTI oil price feed</li>
           </ul>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown('<div class="footer-text">SplitLogic v1.0 · Cost Recovery Module · © 2026</div>',
                 unsafe_allow_html=True)
+#endregion
 
-
-# ──────────────────────────────────────────────────────────────
-# ██████████████  MODULE B – GROSS SPLIT  ████████
-# ──────────────────────────────────────────────────────────────
+#region Gross Split
+# ───────────────────────────────────────────
+# 6. GROSS SPLIT MODULE
+# ───────────────────────────────────────────
 else:
 
     # ── Gross Split Calculation Engine ──
@@ -1150,3 +1426,4 @@ else:
 
     st.markdown('<div class="footer-text">SplitLogic v1.0 · Gross Split Module · © 2026</div>',
                 unsafe_allow_html=True)
+#endregion
