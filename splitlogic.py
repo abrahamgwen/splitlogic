@@ -344,7 +344,6 @@ if app_mode == "Cost Recovery":
             edit_vat = st.data_editor(df_vat_init, hide_index=True,
                                       use_container_width=True, key="editor_vat")
 
-        # ── FIX 5: Escalation Factor table (new, default 0%) ──
         with st.sidebar.expander("📈 Escalation Factor (%/year)", expanded=False):
             df_esc_init = pd.DataFrame({
                 "Year":           range(start_year, end_year + 1),
@@ -353,7 +352,6 @@ if app_mode == "Cost Recovery":
             edit_esc = st.data_editor(df_esc_init, hide_index=True,
                                       use_container_width=True, key="editor_esc")
 
-        # ── helper: build "After-VAT" display column ──
         def after_vat_col(base_vals, vat_flags, vat_rates):
             """Return list of values after applying VAT where flag is True."""
             result = []
@@ -378,7 +376,6 @@ if app_mode == "Cost Recovery":
                 "PIS Year":         [2023] * num_years,
                 "Useful Life (y)":  [5]    * num_years,
                 "Depreciation":     ["25%"] * num_years,
-                # FIX 2: boolean column so user can toggle per-row
                 "VAT":              [True]  * num_years,
                 "Tangible After":   after_vat_col(default_tangible_1,
                                                   [True]*num_years, vat_rates_now),
@@ -568,7 +565,6 @@ if app_mode == "Cost Recovery":
         non_zero_idx  = np.where(prod_mstb > 0)[0]
         prod_start_yr = int(non_zero_idx[0]) if len(non_zero_idx) > 0 else 0
 
-        # ── FIX 5: build escalation multiplier per year ──
         # Esc. Factor (%) is the *incremental* annual escalation.
         # Multiplier cumulates from the first production year onward.
         esc_pct = edit_esc["Esc. Factor (%)"].values.astype(float) / 100.0
@@ -590,7 +586,6 @@ if app_mode == "Cost Recovery":
         dep_capex1     = np.zeros(total_years)
         dep_capex2     = np.zeros(total_years)
 
-        # ── FIX 4: corrected depreciation function ──
         def calc_depreciation(asset_value, start_idx, life, method, prod_profile=None):
             arr      = np.zeros(total_years)
             if asset_value <= 0 or start_idx >= total_years:
@@ -599,7 +594,6 @@ if app_mode == "Cost Recovery":
             book_val = float(asset_value)
 
             if method == "Straight Line":
-                # FIX: always 1/life regardless of the "25%" label in the table
                 dep_amount = asset_value / life
                 for i in range(life):
                     y = start_idx + i
@@ -615,7 +609,6 @@ if app_mode == "Cost Recovery":
                     y = start_idx + i
                     if y >= total_years:
                         break
-                    # FIX: last year → flush remaining book value
                     if i == life - 1 or book_val <= 0:
                         arr[y]    = book_val
                         book_val  = 0
@@ -656,7 +649,6 @@ if app_mode == "Cost Recovery":
                     y = start_idx + i
                     if y >= total_years:
                         break
-                    # FIX: last year → flush
                     if i == life - 1:
                         arr[y]   = book_val
                         break
@@ -667,14 +659,12 @@ if app_mode == "Cost Recovery":
             return arr
 
         # ── CAPEX / OPEX → build arrays using pre-computed After-VAT values ──
-        # FIX 2 + 3: use the live-recomputed after-vat lists (c1_after, c2_after, c3_after)
         #             and respect PIS Year from the editor.
         for i in range(total_years):
             # CAPEX I
             t1_after = float(c1_after[i]) * capex_mult
             if t1_after > 0:
                 pis_yr  = int(edit_capex_1["PIS Year"].iloc[i])
-                # FIX 3: honour user-set PIS Year; clamp to prod_start_yr minimum
                 idx_pis = np.searchsorted(years_array, pis_yr)
                 idx_pis = int(np.clip(idx_pis, prod_start_yr, total_years - 1))
                 life_1  = int(edit_capex_1["Useful Life (y)"].iloc[i])
@@ -700,7 +690,6 @@ if app_mode == "Cost Recovery":
             # CAPEX III (Intangible — fully expensed in year incurred, no depreciation schedule)
             dev_intangible[i] = float(c3_after[i]) * capex_mult
 
-            # OPEX — FIX 5: apply escalation multiplier to opex
             def _opex_after(df_opex, idx):
                 val     = float(df_opex["Opex (MUSD)"].iloc[idx])
                 is_vat  = bool(df_opex["VAT"].iloc[idx])
@@ -778,14 +767,9 @@ if app_mode == "Cost Recovery":
         tax_paid       = taxable_income * tax_rate
 
         # ── Cash Flow ──
-        # cash_in  : hanya ada saat berproduksi (recovered + net_ctr_share)
-        # cash_out : CAPEX + OPEX + tax selalu dikeluarkan di tahun berapapun terjadi
-        #            (kontraktor tetap bayar CAPEX meski sudah/belum berproduksi)
-        cash_in  = np.where(prod_mstb > 0, recovered + net_ctr_share, 0.0)
+        cash_in  = recovered + net_ctr_share
         capex_total = exp_costs + dev_tangible + dev_intangible
-        cash_out = np.where(prod_mstb > 0,
-                            capex_total + opex + tax_paid,   # produksi: semua keluar
-                            capex_total)                     # pra/pasca produksi: hanya capex
+        cash_out = capex_total + opex + tax_paid
         net_cf   = cash_in - cash_out
 
         gov_take = gov_ftp + gov_equity + dmo_penalty + tax_paid
@@ -818,7 +802,6 @@ if app_mode == "Cost Recovery":
     gov_take_pct        = total_gov_take / total_gross_revenue if total_gross_revenue > 0 else 0
     total_ctr_take_at   = float(np.sum(results['net_ctr_share']) - np.sum(results['tax_paid']))
 
-    # ── FIX 1: NPV — discount from discount_factor_year, year index = 0 at that year ──
     npv_base = 0.0
     for i in range(results['total_years']):
         # t = number of years from discount_factor_year (can be negative for earlier years)
@@ -826,7 +809,6 @@ if app_mode == "Cost Recovery":
         df_factor = (1.0 + discount_rate) ** t
         npv_base += results['net_cf'][i] / df_factor
 
-    # ── FIX 1: IRR — needs numpy_financial; guard for no sign change ──
     try:
         cf = results['net_cf']
         # IRR only meaningful when there is at least one negative and one positive CF
@@ -1275,10 +1257,12 @@ else:
         else:
             pc["Harga Gas Bumi"]     = calc_gas_price(params.get("gas_price", 8))
         pc["Kumulatif Produksi (MMBOE)"] = calc_nett_prod(params["nett_prod"])
+        
         ministerial    = params.get("ministerial_adj", 0.0)
         total_corr     = sum(fc.values()) + sum(pc.values()) + ministerial
         final_cont     = base["cont"] + total_corr
         final_gov      = 100.0 - final_cont
+        
         return dict(commodity=commodity, base_gov=base["gov"], base_cont=base["cont"],
                     fixed_comps=fc, progressive_comps=pc, ministerial_adj=ministerial,
                     total_correction=total_corr, final_cont=final_cont, final_gov=final_gov)
@@ -1352,8 +1336,45 @@ else:
 
     # ── Sidebar inputs ──
     with st.sidebar:
+        st.markdown("### ⚙️ Input Parameter")
+        
+        # ── 1. Production Profile ──
+        with st.sidebar.expander("📈 Production Profile", expanded=True):
+            col_sy, col_ey = st.columns(2)
+            start_year = col_sy.number_input("Start Year", value=2022, step=1, key="gs_sy")
+            end_year   = col_ey.number_input("End Year",   value=2040, step=1, key="gs_ey")
+
+            num_years = max(1, end_year - start_year + 1)
+            
+            # Data default sesuai gambar referensi user
+            default_lifting = [
+                0.0000, 403.2517, 2180.7837, 3574.9866, 3800.9527, 
+                3216.8753, 2564.7615, 2023.5689, 1617.4838, 1314.8373, 
+                1078.2295, 881.4653, 737.0439, 621.7578, 519.4544, 
+                437.4333, 376.8032, 326.5546, 285.1195
+            ]
+
+            # Menyesuaikan panjang array dengan rentang tahun
+            if num_years > len(default_lifting):
+                default_lifting += [0.0] * (num_years - len(default_lifting))
+            else:
+                default_lifting = default_lifting[:num_years]
+
+            default_prices = [65.0] * num_years
+
+            df_prod_init = pd.DataFrame({
+                "Year":            range(start_year, end_year + 1),
+                "Lifting (MSTB)":  default_lifting,
+                "Price (USD/bbl)": default_prices,
+            })
+            
+            edit_prod = st.data_editor(df_prod_init, hide_index=True,
+                                       use_container_width=True, key="gs_editor_prod")
+
+        # ── 2. Gross Split Components ──
         st.markdown('<div class="sl-section-tag">Komoditas</div>', unsafe_allow_html=True)
         commodity = st.radio("Jenis Komoditas", ["Minyak Bumi", "Gas Bumi"], horizontal=True)
+        
         st.markdown("---")
         st.markdown('<div class="sl-section-tag">Fixed Components</div>', unsafe_allow_html=True)
 
@@ -1377,40 +1398,36 @@ else:
                                   ["Primary", "Sekunder (Injeksi Air / Gas)", "Tersier (EOR)"])
 
         st.markdown("---")
-        st.markdown('<div class="sl-section-tag">Progressive Components</div>', unsafe_allow_html=True)
-        if commodity == "Minyak Bumi":
-            icp_price = st.number_input("11 · Harga Minyak ICP (US$/BBL)", min_value=0.0, value=0.0, step=1.0)
-            gas_price = 0.0
-        else:
-            gas_price = st.number_input("11 · Harga Gas (US$/MMBTU)", min_value=0.0, value=0.0, step=0.1)
-            icp_price = 0.0
-        nett_prod = st.number_input("12 · Kumulatif Produksi (MMBOE)", min_value=0.0, value=0.0, step=1.0)
-
-        st.markdown("---")
         st.markdown('<div class="sl-section-tag">Pasal 7 – Diskresi Menteri</div>', unsafe_allow_html=True)
         ministerial_adj = st.number_input("Tambahan / Pengurangan Split Kontraktor (%)", value=0.0, step=0.5)
-        st.markdown("---")
-        calc_btn = st.button("⚡ Hitung Gross Split", use_container_width=True)
 
-    # ── Run Calculation ──
+    # ── Run Initial Single Calculation (Base on First Year / Averages) ──
+    # Note: Ini akan kita kembangkan jadi per-tahun di tahap selanjutnya.
+    # Untuk sementara kita ambil dari baris pertama / total di editor
+    initial_price = edit_prod["Price (USD/bbl)"].iloc[0] if len(edit_prod) > 0 else 65.0
+    initial_cum_prod = edit_prod["Lifting (MSTB)"].sum() / 1000 # Convert to MMBOE
+    
     params = dict(
         commodity=commodity, field_status=field_status, is_offshore=is_offshore,
         water_depth=water_depth, reservoir_depth=reservoir_depth,
         infrastructure=infrastructure, reservoir_type=reservoir_type,
         co2_pct=co2_pct, h2s_ppm=h2s_ppm, api=api, tkdn_pct=tkdn_pct,
-        prod_stage=prod_stage, icp_price=icp_price, gas_price=gas_price,
-        nett_prod=nett_prod, ministerial_adj=ministerial_adj,
+        prod_stage=prod_stage, 
+        icp_price=initial_price if commodity == "Minyak Bumi" else 0.0, 
+        gas_price=initial_price if commodity == "Gas Bumi" else 0.0,
+        nett_prod=initial_cum_prod, 
+        ministerial_adj=ministerial_adj,
     )
     result = calculate_gross_split(params)
 
     # ── Header ──
-    col_logo, col_hero = st.columns([1, 4])
+    col_logo, col_title = st.columns([1, 10]) # Disamakan dengan Cost Recovery
     with col_logo:
         if logo:
-            st.image(logo, width=110)
+            st.image(logo, use_container_width=True)
         else:
             st.markdown('<div style="font-size:3rem;text-align:center;">⚡</div>', unsafe_allow_html=True)
-    with col_hero:
+    with col_title:
         st.markdown(f"""
         <h1 style="margin-bottom:0;">
           SplitLogic
@@ -1535,7 +1552,7 @@ else:
           <h3>PSC Gross Split Calculator</h3>
           <p>
             Modul ini menghitung <strong>PSC Gross Split</strong> sesuai dengan regulasi Indonesia
-            (Permen ESDM No. 52 Tahun 2017 dan perubahannya), dimana bagi hasil ditetapkan di awal
+            (Permen ESDM No. 20 Tahun 2019), dimana bagi hasil ditetapkan di awal
             berdasarkan karakteristik lapangan dan komoditas tanpa mekanisme cost recovery.
           </p>
           <hr/>
