@@ -507,7 +507,7 @@ if app_mode == "Cost Recovery":
         with st.sidebar.expander("💰 Fiscal & Split Terms", expanded=True):
             tax_rate             = st.number_input("Cont. Eff. Tax Rate (%)",      value=37.00, step=1.0) / 100
             dmo_volume_rate      = st.number_input("DMO Volume (%)",               value=25.00, step=1.0) / 100
-            dmo_fee_rate         = st.number_input("DMO Fee (%)",                  value=25.00, step=1.0) / 100
+            dmo_fee_rate         = st.number_input("DMO Fee (%)",                  value=100.00, step=1.0) / 100
             dmo_holiday_years    = st.number_input("DMO Holiday Duration (years)", value=5,     step=1)
             discount_rate        = st.number_input("Discount Factor (%)",          value=10.00, step=1.0) / 100
             discount_factor_year = st.number_input("Discount Factor Year",         value=2023,  step=1)
