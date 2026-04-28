@@ -2,7 +2,7 @@
 # ──────────────────────────────────────────
 # SplitLogic v1.0 – PSC Modelling
 # Created by Abraham Gwen Bramanti
-# Last edited: 4/19/2026
+# Last edited: 4/28/2026
 # ──────────────────────────────────────────
 #endregion
 
@@ -505,17 +505,17 @@ if app_mode == "Cost Recovery":
             edit_opex_6 = make_opex_df([0.0] * num_years, "6")
 
         with st.sidebar.expander("💰 Fiscal & Split Terms", expanded=True):
-            tax_rate             = st.number_input("Cont. Eff. Tax Rate (%)",      value=37.00, step=1.0) / 100
+            tax_rate             = st.number_input("Cont. Eff. Tax Rate (%)",      value=37.60, step=1.0) / 100
             dmo_volume_rate      = st.number_input("DMO Volume (%)",               value=25.00, step=1.0) / 100
             dmo_fee_rate         = st.number_input("DMO Fee (%)",                  value=100.00, step=1.0) / 100
-            dmo_holiday_years    = st.number_input("DMO Holiday Duration (years)", value=5,     step=1)
+            dmo_holiday_years    = st.number_input("DMO Holiday Duration (years)", value=0,     step=1)
             discount_rate        = st.number_input("Discount Factor (%)",          value=10.00, step=1.0) / 100
             discount_factor_year = st.number_input("Discount Factor Year",         value=2023,  step=1)
-            ftp_rate             = st.number_input("FTP (%)",                      value=20.00, step=1.0) / 100
+            ftp_rate             = st.number_input("FTP (%)",                      value=10.00, step=1.0) / 100
 
             st.markdown("---")
             st.markdown("**Split Breakdown (%)**")
-            gov_split_after_tax  = st.number_input("Gov. After Tax Split (%)", value=85.00, step=1.0) / 100
+            gov_split_after_tax  = st.number_input("Gov. After Tax Split (%)", value=62.60, step=1.0) / 100
             ctr_split_after_tax  = 1 - gov_split_after_tax
             ctr_split_before_tax = ctr_split_after_tax / (1 - tax_rate) if tax_rate != 1 else 0
             gov_split_before_tax = 1 - ctr_split_before_tax
